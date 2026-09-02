@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WA-AI Auto Reply Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+  <section id="login-screen" class="login-screen">
+    <div class="login-box">
+      <div class="login-logo">🤖</div>
+      <h1>WA-AI Auto Reply</h1>
+      <p class="login-sub">Hubungkan WhatsApp untuk mulai</p>
+
+      <div class="login-qr-wrap">
+        <img id="qr-image" alt="QR Code" />
+        <div id="qr-loading" class="qr-loading">Menunggu QR code...</div>
+      </div>
+
+      <p class="qr-hint">Scan QR ini dari WhatsApp: <b>Menu ⋮ &gt; Perangkat Tertaut &gt; Tautkan Perangkat</b></p>
+      <p id="login-status" class="login-status">Menghubungkan ke server...</p>
+    </div>
+  </section>
+
+  <main id="dashboard" style="display:none">
+    <header>
+      <h1>🤖 WA-AI Auto Reply</h1>
+      <span id="version" class="badge">v...</span>
+      <button id="logout-btn" class="logout-btn" onclick="logout()">Logout</button>
+    </header>
+
+    <section id="status-card" class="card">
+      <h2>Status</h2>
+      <div class="status-row">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Terhubung</span>
+      </div>
+      <div id="user-info" class="muted"></div>
+    </section>
+
+    <section class="card">
+      <h2>Statistik</h2>
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-value" id="stat-messages">-</div>
+          <div class="stat-label">Total Pesan</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-chats">-</div>
+          <div class="stat-label">Total Chat</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Daftar Chat</h2>
+      <div id="chat-list" class="chat-list">Memuat...</div>
+    </section>
+
+    <section class="card">
+      <h2>Kirim Pesan Manual</h2>
+      <div class="send-form">
+        <input type="text" id="send-jid" placeholder="JID WhatsApp (cth: 62812....@s.whatsapp.net)">
+        <input type="text" id="send-text" placeholder="Isi pesan">
+        <button id="send-btn" onclick="sendMessage()">Kirim</button>
+      </div>
+      <div id="send-result" class="result"></div>
+    </section>
+
+    <section class="card" id="history-card" style="display:none">
+      <h2 id="history-title">Riwayat Chat</h2>
+      <div id="history" class="history-list"></div>
+    </section>
+
+    <section class="card">
+      <h2>Settings (.env)</h2>
+      <p class="muted settings-note">Semua nilai dapat diubah melalui form ini dan langsung ditulis ke <code>.env</code>. Nilai AI akan aktif tanpa restart; perubahan <code>DB_FILE</code>, <code>TG_SESSION_FILE</code>, dan <code>PORT</code> aktif setelah restart.</p>
+
+      <div class="settings-grid">
+        <label>AI Base URL
+          <input type="text" id="set-AI_BASE_URL" class="set-input">
+        </label>
+        <label>AI API Key
+          <input type="password" id="set-AI_API_KEY" class="set-input" autocomplete="new-password">
+        </label>
+        <label>AI Model
+          <input type="text" id="set-AI_MODEL" class="set-input">
+        </label>
+        <label>STT Base URL
+          <input type="text" id="set-AI_BASE_URL_STT" class="set-input">
+        </label>
+        <label>STT Model
+          <input type="text" id="set-AI_MODEL_STT" class="set-input">
+        </label>
+        <label>MAX_HISTORY (jumlah pesan dipakai AI)
+          <input type="number" id="set-MAX_HISTORY" class="set-input" min="1">
+        </label>
+        <label>DEBOUNCE_MS (jeda respons)
+          <input type="number" id="set-DEBOUNCE_MS" class="set-input" min="0">
+        </label>
+        <label>DB_FILE (restart)
+          <input type="text" id="set-DB_FILE" class="set-input">
+        </label>
+        <label>TG_SESSION_FILE (restart)
+          <input type="text" id="set-TG_SESSION_FILE" class="set-input">
+        </label>
+        <label>PORT (restart)
+          <input type="number" id="set-PORT" class="set-input" min="1" max="65535">
+        </label>
+        <label class="settings-full">EXTRA_PROMPT (instruksi tambahan)
+          <textarea id="set-EXTRA_PROMPT" class="set-input"></textarea>
+        </label>
+        <label class="settings-full">AI_SYSTEM_PROMPT (system prompt)
+          <textarea id="set-AI_SYSTEM_PROMPT" class="set-input"></textarea>
+        </label>
+        <label class="settings-full">AI_VOICE_SELECT_PROMPT (pemilih file voice)
+          <textarea id="set-AI_VOICE_SELECT_PROMPT" class="set-input"></textarea>
+        </label>
+      </div>
+
+      <button id="settings-btn" onclick="saveSettings()">Simpan Settings</button>
+      <button id="settings-reload-btn" class="ghost-btn" onclick="loadSettings()" type="button">Reset Form</button>
+      <div id="settings-result" class="result"></div>
+    </section>
+
+    <section class="card">
+      <h2>Voice Notes</h2>
+      <div id="voice-files" class="voice-list">Memuat...</div>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

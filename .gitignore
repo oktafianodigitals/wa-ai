@@ -1,0 +1,39 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Environment & secrets
+.env
+.env.local
+
+# WhatsApp session
+session.key
+session*.key
+session/
+
+# Database — jangan di-push ke repo
+data.sqlite3
+data.sqlite3-shm
+data.sqlite3-wal
+*.sqlite3
+*.db
+
+# Voice notes (file audio besar)
+voice-notes/
+
+# Backup
+backup/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+tmp/
+*.tmp

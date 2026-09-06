@@ -5,9 +5,11 @@ WhatsApp Auto Reply AI — Sistem chat otomatis menggunakan Baileys + AI.
 ## Setup
 
 1. Copy `.env.example` ke `.env` dan isi konfigurasi
-2. `npm install`
-3. `npm start`
-4. Scan QR code yang muncul di terminal
+2. `nvm install 22`
+3. `nvm use 22`
+4. `npm install`
+5. `npm start`
+6. Scan QR code http://localhost:3000/
 
 ## Konfigurasi (.env)
 

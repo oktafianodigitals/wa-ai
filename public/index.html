@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0F2E2B">
+  <title>WA-AI Auto Reply</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230F2E2B'/><path d='M8 22l1.4-4.2A8 8 0 1 1 13 21z' fill='none' stroke='%2345D483' stroke-width='2.2' stroke-linejoin='round'/></svg>">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body>
+  <!-- Sprite ikon -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-logo" viewBox="0 0 24 24"><path d="M4 20l1.3-4A8.5 8.5 0 1 1 8.2 19z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 9.5c.4 2.6 2.4 4.6 5 5l1.2-1.3-1.9-1-.9.6c-.7-.3-1.4-1-1.7-1.7l.6-.9-1-1.9z" fill="currentColor"/></symbol>
+      <symbol id="i-dash" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="3.5" y="15.5" width="7" height="5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.5-5.8M20 4v4.5h-4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-2.5-6.5z" fill="currentColor"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></symbol>
+      <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="13.5" y="5" width="4" height="14" rx="1" fill="currentColor"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V4.5h4V7M7 7l1 13h8l1-13M10.5 11v6M13.5 11v6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 17v3h16v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10M15 8l4 4-4 4M19 12H9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M11 18h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4.5" y="8" width="15" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 8V4.5M9 13v1.5M15 13v1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" fill="currentColor"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- ============ LOGIN (QR) ============ -->
+  <section id="login-screen" class="login-screen">
+    <div class="login-panel">
+      <div class="login-intro">
+        <div class="brand-mark"><svg class="ic"><use href="#i-logo" /></svg></div>
+        <h1>Hubungkan WhatsApp</h1>
+        <p class="login-lead">Setelah tertaut, bot membalas chat pribadi memakai AI dan bisa mengirim voice note yang cocok dengan percakapan.</p>
+        <ol class="login-steps">
+          <li>Buka WhatsApp di ponsel</li>
+          <li>Pilih <b>Pengaturan</b> → <b>Perangkat tertaut</b></li>
+          <li>Ketuk <b>Tautkan perangkat</b>, lalu arahkan kamera ke kode QR</li>
+        </ol>
+      </div>
+      <div class="login-qr">
+        <div class="qr-frame">
+          <img id="qr-image" alt="Kode QR WhatsApp">
+          <div id="qr-loading" class="qr-loading"><span class="spinner"></span><span>Menyiapkan kode QR…</span></div>
+        </div>
+        <p id="login-status" class="login-status" role="status">Menghubungkan ke server…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ APP ============ -->
+  <div id="app-shell" class="app-shell" hidden>
+    <aside class="sidebar">
+      <div class="side-brand">
+        <div class="brand-mark sm"><svg class="ic"><use href="#i-logo" /></svg></div>
+        <div>
+          <div class="side-name">WA-AI</div>
+          <div class="side-ver" id="version">v…</div>
+        </div>
+      </div>
+
+      <nav class="side-nav" aria-label="Menu utama">
+        <button class="nav-item active" data-page="dashboard"><svg class="ic"><use href="#i-dash" /></svg><span>Dashboard</span></button>
+        <button class="nav-item" data-page="chats"><svg class="ic"><use href="#i-chat" /></svg><span>Chat</span><i class="nav-badge" id="nav-chat-badge" hidden></i></button>
+        <button class="nav-item" data-page="voice"><svg class="ic"><use href="#i-mic" /></svg><span>Voice note</span></button>
+        <button class="nav-item" data-page="settings"><svg class="ic"><use href="#i-gear" /></svg><span>Pengaturan</span></button>
+      </nav>
+
+      <div class="side-foot">
+        <div class="side-account">
+          <span class="dot" id="status-dot"></span>
+          <div class="side-account-text">
+            <div id="status-text">Menunggu login</div>
+            <div id="user-info" class="muted-s"></div>
+          </div>
+        </div>
+        <button id="logout-btn" class="side-logout" type="button" title="Keluar dan hapus sesi"><svg class="ic"><use href="#i-logout" /></svg><span>Keluar</span></button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="topbar-text">
+          <h1 id="page-title">Dashboard</h1>
+          <p id="page-subtitle">Kondisi bot dan jalur koneksinya saat ini</p>
+        </div>
+        <button class="btn ghost" type="button" id="refresh-btn"><svg class="ic"><use href="#i-refresh" /></svg><span>Segarkan</span></button>
+      </header>
+
+      <main class="pages">
+
+        <!-- ===== DASHBOARD ===== -->
+        <section class="page active" id="page-dashboard">
+
+          <div class="linkstrip" id="linkstrip" aria-label="Jalur koneksi">
+            <div class="node" id="node-wa" data-state="idle">
+              <div class="node-icon"><svg class="ic"><use href="#i-phone" /></svg></div>
+              <div class="node-body"><div class="node-name">WhatsApp</div><div class="node-detail" id="node-wa-detail">Memeriksa…</div></div>
+            </div>
+            <div class="wire" id="wire-1"></div>
+            <div class="node" id="node-bot" data-state="idle">
+              <div class="node-icon"><svg class="ic"><use href="#i-bot" /></svg></div>
+              <div class="node-body"><div class="node-name">Auto reply</div><div class="node-detail" id="node-bot-detail">Memeriksa…</div></div>
+            </div>
+            <div class="wire" id="wire-2"></div>
+            <div class="node" id="node-router" data-state="idle">
+              <div class="node-icon"><svg class="ic"><use href="#i-route" /></svg></div>
+              <div class="node-body"><div class="node-name">9router</div><div class="node-detail" id="node-router-detail">Memeriksa…</div></div>
+            </div>
+            <div class="wire" id="wire-3"></div>
+            <div class="node" id="node-model" data-state="idle">
+              <div class="node-icon"><svg class="ic"><use href="#i-spark" /></svg></div>
+              <div class="node-body"><div class="node-name">Model</div><div class="node-detail" id="node-model-detail">Memeriksa…</div></div>
+            </div>
+          </div>
+
+          <div id="ai-alert" class="alert" hidden>
+            <div class="alert-text">
+              <strong id="ai-alert-title"></strong>
+              <span id="ai-alert-hint"></span>
+            </div>
+            <div class="alert-actions">
+              <button class="btn sm" type="button" id="ai-alert-test">Jalankan diagnosa</button>
+              <button class="btn sm ghost" type="button" data-goto="settings">Buka pengaturan</button>
+            </div>
+          </div>
+
+          <div class="dash-grid">
+            <section class="panel span-2">
+              <div class="panel-head">
+                <h2>Pesan 7 hari terakhir</h2>
+                <div class="legend"><span class="lg in">Masuk</span><span class="lg bot">Balasan bot</span></div>
+              </div>
+              <div class="chart" id="chart" role="img" aria-label="Grafik pesan harian"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head"><h2>Balas otomatis</h2></div>
+              <label class="toggle-row">
+                <span class="switch"><input type="checkbox" id="auto-reply-toggle"><span class="switch-track"></span></span>
+                <span>
+                  <span class="toggle-title" id="auto-reply-status">Memuat…</span>
+                  <span class="toggle-note">Hanya chat pribadi. Grup tidak dibalas.</span>
+                </span>
+              </label>
+              <dl class="kv">
+                <div><dt>Model</dt><dd id="ai-model">–</dd></div>
+                <div><dt>Alamat</dt><dd id="ai-baseurl" class="mono">–</dd></div>
+                <div><dt>API key</dt><dd id="ai-apikey">–</dd></div>
+              </dl>
+              <button class="btn full" type="button" id="dash-test-btn"><svg class="ic"><use href="#i-route" /></svg><span>Tes koneksi AI</span></button>
+            </section>
+          </div>
+
+          <div class="statrow">
+            <div class="stat"><div class="stat-num" id="stat-messages">–</div><div class="stat-label">Total pesan</div></div>
+            <div class="stat"><div class="stat-num" id="stat-chats">–</div><div class="stat-label">Percakapan</div></div>
+            <div class="stat"><div class="stat-num" id="stat-today">–</div><div class="stat-label">Pesan hari ini</div></div>
+            <div class="stat"><div class="stat-num" id="stat-bot">–</div><div class="stat-label">Balasan bot</div></div>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Aktivitas terbaru</h2>
+              <button class="btn sm ghost" type="button" data-goto="chats">Buka chat</button>
+            </div>
+            <ul id="recent-list" class="recent"></ul>
+          </section>
+        </section>
+
+        <!-- ===== CHAT ===== -->
+        <section class="page" id="page-chats">
+          <div class="chat-shell" id="chat-shell">
+            <div class="chat-list-pane">
+              <div class="pane-head">
+                <div class="search">
+                  <svg class="ic"><use href="#i-search" /></svg>
+                  <input type="search" id="chat-search" placeholder="Cari nomor atau isi pesan" autocomplete="off">
+                </div>
+              </div>
+              <div id="chat-list" class="chat-list" role="listbox" aria-label="Daftar percakapan"></div>
+            </div>
+
+            <div class="convo-pane">
+              <div class="convo-empty" id="convo-empty">
+                <div class="empty-mark"><svg class="ic"><use href="#i-chat" /></svg></div>
+                <h3>Pilih percakapan</h3>
+                <p>Riwayat dan balasan bot muncul di sini. Kamu juga bisa membalas manual.</p>
+              </div>
+              <div class="convo" id="convo" hidden>
+                <div class="convo-head">
+                  <button class="icon-btn back-btn" type="button" id="convo-back" aria-label="Kembali ke daftar"><svg class="ic"><use href="#i-back" /></svg></button>
+                  <div class="avatar" id="convo-avatar"></div>
+                  <div class="convo-title">
+                    <div class="convo-name" id="convo-name"></div>
+                    <div class="convo-sub" id="convo-sub"></div>
+                  </div>
+                  <button class="icon-btn" type="button" id="convo-reload" aria-label="Muat ulang percakapan"><svg class="ic"><use href="#i-refresh" /></svg></button>
+                </div>
+                <div class="messages" id="messages" aria-live="polite"></div>
+                <form class="composer" id="composer" autocomplete="off">
+                  <textarea id="composer-input" rows="1" placeholder="Tulis balasan manual…" maxlength="4000"></textarea>
+                  <button class="send-btn" type="submit" id="composer-send" aria-label="Kirim"><svg class="ic"><use href="#i-send" /></svg></button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== VOICE ===== -->
+        <section class="page" id="page-voice">
+          <div class="voice-top">
+            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Unggah voice note">
+              <svg class="ic"><use href="#i-upload" /></svg>
+              <div>
+                <strong>Tarik file audio ke sini atau klik untuk memilih</strong>
+                <span>mp3, ogg, opus, wav, m4a — maksimal 25 MB per file</span>
+              </div>
+              <input type="file" id="voice-input" accept=".mp3,.ogg,.opus,.wav,.m4a,audio/*" multiple hidden>
+            </div>
+            <p class="voice-explain">Setelah membalas dengan teks, bot meminta AI memilih <em>satu</em> file dari daftar ini berdasarkan isi percakapan, lalu mengirimnya sebagai voice note. Beri nama file yang menjelaskan isinya, misalnya <code>selamat-pagi.mp3</code>, supaya pilihan AI tepat.</p>
+          </div>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Pustaka <span class="count" id="voice-count"></span></h2>
+              <div class="search sm">
+                <svg class="ic"><use href="#i-search" /></svg>
+                <input type="search" id="voice-search" placeholder="Cari nama file" autocomplete="off">
+              </div>
+            </div>
+            <ul id="voice-files" class="voice-list"></ul>
+          </section>
+        </section>
+
+        <!-- ===== SETTINGS ===== -->
+        <section class="page" id="page-settings">
+          <form id="settings-form" class="settings" autocomplete="off">
+
+            <section class="panel sgroup">
+              <div class="sgroup-head">
+                <h2>Koneksi AI (9router)</h2>
+                <p>Alamat bisa ditulis lengkap atau ringkas: <code>http://localhost:20128</code>, <code>…/v1</code>, atau <code>…/v1/chat/completions</code>.</p>
+              </div>
+              <div class="fields">
+                <label class="field wide">
+                  <span>AI Base URL</span>
+                  <input type="text" id="set-AI_BASE_URL" class="set-input" placeholder="http://localhost:20128/v1/chat/completions" spellcheck="false">
+                </label>
+                <label class="field">
+                  <span>API key</span>
+                  <input type="password" id="set-AI_API_KEY" class="set-input" autocomplete="new-password" placeholder="Biarkan kosong untuk mempertahankan">
+                </label>
+                <label class="field">
+                  <span>Model</span>
+                  <input type="text" id="set-AI_MODEL" class="set-input" list="model-options" placeholder="mis. ag/gemini-3.6-flash-medium" spellcheck="false">
+                  <datalist id="model-options"></datalist>
+                </label>
+              </div>
+              <div class="inline-actions">
+                <button class="btn" type="button" id="test-btn"><svg class="ic"><use href="#i-route" /></svg><span>Tes koneksi</span></button>
+                <button class="btn ghost" type="button" id="models-btn">Ambil daftar model</button>
+                <span class="muted-s">Tes memakai isi form ini, sebelum disimpan.</span>
+              </div>
+              <ol class="diag" id="diag" hidden></ol>
+            </section>
+
+            <section class="panel sgroup">
+              <div class="sgroup-head">
+                <h2>Balasan</h2>
+                <p>Perilaku bot saat menerima pesan.</p>
+              </div>
+              <div class="fields">
+                <label class="field">
+                  <span>Balas otomatis</span>
+                  <select id="set-AUTO_REPLY_ENABLED" class="set-input">
+                    <option value="true">Aktif</option>
+                    <option value="false">Nonaktif</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Riwayat untuk konteks AI (pesan)</span>
+                  <input type="number" id="set-MAX_HISTORY" class="set-input" min="1" max="200">
+                </label>
+                <label class="field">
+                  <span>Jeda sebelum membalas (ms)</span>
+                  <input type="number" id="set-DEBOUNCE_MS" class="set-input" min="0" step="500">
+                  <small>Pesan beruntun digabung dalam jeda ini.</small>
+                </label>
+                <label class="field wide">
+                  <span>System prompt</span>
+                  <textarea id="set-AI_SYSTEM_PROMPT" class="set-input" rows="4" placeholder="Kepribadian dan aturan bot"></textarea>
+                </label>
+                <label class="field wide">
+                  <span>Instruksi tambahan</span>
+                  <textarea id="set-EXTRA_PROMPT" class="set-input" rows="3" placeholder="Ditambahkan di bawah system prompt"></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel sgroup">
+              <div class="sgroup-head">
+                <h2>Voice note</h2>
+                <p>Transkripsi suara masuk dan pemilihan voice note balasan.</p>
+              </div>
+              <div class="fields">
+                <label class="field wide">
+                  <span>STT Base URL</span>
+                  <input type="text" id="set-AI_BASE_URL_STT" class="set-input" placeholder="https://…/v1/audio/transcriptions" spellcheck="false">
+                </label>
+                <label class="field">
+                  <span>STT model</span>
+                  <input type="text" id="set-AI_MODEL_STT" class="set-input" placeholder="whisper-1">
+                </label>
+                <label class="field wide">
+                  <span>Prompt pemilih voice note</span>
+                  <textarea id="set-AI_VOICE_SELECT_PROMPT" class="set-input" rows="4" placeholder="Kosongkan untuk memakai prompt bawaan. Gunakan {FILE_LIST} sebagai tempat daftar file."></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel sgroup">
+              <div class="sgroup-head">
+                <h2>Sistem</h2>
+                <p>Perubahan di bagian ini berlaku setelah bot dijalankan ulang. Port dashboard diatur lewat <code>PORT</code> di file <code>.env</code>.</p>
+              </div>
+              <div class="fields">
+                <label class="field"><span>File database</span><input type="text" id="set-DB_FILE" class="set-input"></label>
+                <label class="field"><span>File sesi WhatsApp</span><input type="text" id="set-TG_SESSION_FILE" class="set-input"></label>
+              </div>
+            </section>
+
+            <section class="panel sgroup">
+              <div class="sgroup-head row">
+                <div>
+                  <h2>Log aplikasi</h2>
+                  <p>800 baris terakhir.</p>
+                </div>
+                <div class="inline-actions">
+                  <button class="btn sm ghost" type="button" id="logs-reload">Muat ulang</button>
+                  <button class="btn sm ghost" type="button" id="logs-clear">Bersihkan</button>
+                </div>
+              </div>
+              <pre id="app-logs" class="logs" tabindex="0">Memuat…</pre>
+            </section>
+
+            <div class="savebar">
+              <span id="settings-result" class="savebar-msg" role="status"></span>
+              <button class="btn ghost" type="button" id="settings-reload">Batalkan perubahan</button>
+              <button class="btn primary" type="submit" id="settings-btn">Simpan pengaturan</button>
+            </div>
+          </form>
+        </section>
+
+      </main>
+    </div>
+
+    <nav class="tabbar" aria-label="Menu utama (ponsel)">
+      <button class="tab active" data-page="dashboard"><svg class="ic"><use href="#i-dash" /></svg><span>Dashboard</span></button>
+      <button class="tab" data-page="chats"><svg class="ic"><use href="#i-chat" /></svg><span>Chat</span></button>
+      <button class="tab" data-page="voice"><svg class="ic"><use href="#i-mic" /></svg><span>Voice</span></button>
+      <button class="tab" data-page="settings"><svg class="ic"><use href="#i-gear" /></svg><span>Atur</span></button>
+    </nav>
+  </div>
+
+  <div id="toast-container" class="toasts" aria-live="polite"></div>
+  <script src="js/app.js"></script>
+</body>
+
+</html>

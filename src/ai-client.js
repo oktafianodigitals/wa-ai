@@ -202,7 +202,7 @@ function buildHeaders(apiKey, extra = {}) {
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json, text/event-stream',
-    'User-Agent': 'WA-AI-Bot/2.5.3',
+    'User-Agent': 'WA-AI-Bot/2.6.0',
     ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
     ...extra,
   };

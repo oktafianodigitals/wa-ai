@@ -2,13 +2,15 @@ import makeWASocket, {
   DisconnectReason,
   downloadMediaMessage,
   isJidGroup,
+  isJidBroadcast,
+  isJidNewsletter,
   jidNormalizedUser,
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import fs from 'fs';
 import QRCode from 'qrcode';
 import { config } from './config.js';
-import { saveMessage, clearMessages } from './db.js';
+import { saveMessage, clearMessages, clearWaLabels, getHistory, formatHistoryForAI, isBotEnabledForChat } from './db.js';
 import { chatWithAI } from './ai.js';
 import { transcribeAudio } from './stt.js';
 import { selectVoiceFile, getVoicePath, getVoiceFiles, getVoiceMime } from './voice-select.js';
@@ -17,6 +19,9 @@ import { debounce } from './debounce.js';
 import { rememberFromMessage, rememberContacts, queueAvatar, queueAllAvatars, clearAvatars } from './contacts.js';
 import { emit, setLatestQr, clearLatestQr } from './socket.js';
 import { useSingleFileAuthState } from './single-file-auth.js';
+import { describeIncoming, storeMedia, mediaFilePath, clearAllMedia } from './media.js';
+import { classifyChat } from './categories.js';
+import { initLabels, attachLabelListeners, scheduleAutoSync, createSyncLogStream } from './labels.js';
 
 let sock;
 let authState;
@@ -24,7 +29,8 @@ let logoutPending = false;
 let reconnectTimer = null;
 let connecting = false;
 
-const logger = pino({ level: 'silent' });
+// Hanya log sinkronisasi app-state yang diteruskan (lihat labels.js); sisanya tetap diam.
+const logger = pino({ level: 'info' }, createSyncLogStream());
 
 export function getSock() {
   return sock;
@@ -110,11 +116,15 @@ export async function startWA() {
         clearLatestQr();
         try { emit('status', { connected: true, user: sock.user }); } catch {}
         setTimeout(() => queueAllAvatars(getSock), 3000);
+        scheduleAutoSync(() => sock === thisSock);
       }
     } catch (e) {
       console.error('[WA] connection.update error:', e?.message || e);
     }
   });
+
+  initLabels({ getSock: () => sock, getKeys: () => state.keys });
+  attachLabelListeners(thisSock);
 
   sock.ev.on('contacts.upsert', (list) => { try { rememberContacts(list); } catch {} });
   sock.ev.on('contacts.update', (list) => { try { rememberContacts(list); } catch {} });
@@ -130,76 +140,90 @@ export async function startWA() {
   return sock;
 }
 
-async function handleMessage(msg) {
+/**
+ * Memproses satu pesan masuk. Semua jenis pesan (teks, gambar, dokumen apa pun, video, audio,
+ * stiker, kontak, lokasi, dll) disimpan dan dibalas; hanya pesan teknis WhatsApp yang diabaikan.
+ * `ctx.sock` dipakai untuk pengujian; secara normal memakai koneksi aktif.
+ */
+export async function handleMessage(msg, ctx = {}) {
   if (!msg.message) return;
   if (msg.key.fromMe) return;
 
   const chatJid = msg.key.remoteJid;
-  if (isJidGroup(chatJid)) return;
+  if (!chatJid || isJidGroup(chatJid) || isJidBroadcast(chatJid) || isJidNewsletter(chatJid)) return;
+  const getS = () => ctx.sock || sock;
 
   const sender = jidNormalizedUser(msg.key.participant || msg.key.remoteJid);
-  const isFromMe = msg.key.fromMe;
 
-  let content = '';
-  let isVoice = false;
+  const info = describeIncoming(msg);
+  if (!info) return; // pesan teknis (reaksi, edit, protokol, ...)
 
-  const m = msg.message;
+  let content = info.content;
+  let media = null;
 
-  if (m.conversation) {
-    content = m.conversation;
-  } else if (m.extendedTextMessage?.text) {
-    content = m.extendedTextMessage.text;
-  } else if (m.imageMessage?.caption) {
-    content = `[Gambar] ${m.imageMessage.caption}`;
-  } else if (m.videoMessage?.caption) {
-    content = `[Video] ${m.videoMessage.caption}`;
-  } else if (m.audioMessage) {
-    isVoice = true;
-    content = '[Voice Note]';
-  } else if (m.stickerMessage) {
-    content = '[Stiker]';
-  } else {
-    return;
-  }
+  if (info.media) {
+    media = await storeMedia(msg, info, { sock: getS() });
 
-  if (isVoice) {
-    try {
-      const buffer = await downloadMediaMessage(msg, 'buffer', {});
-      content = await transcribeAudio(buffer);
-      console.log(`[STT] Transcribed: "${content}"`);
-    } catch (err) {
-      console.error('[STT] Failed to transcribe:', err.message);
-      content = '[Voice Note - tidak bisa ditranskripsi]';
+    if (info.kind === 'voice' || info.kind === 'audio') {
+      // Voice note / audio: transkripsikan agar AI memahami isinya.
+      try {
+        if (!media.path) throw new Error(media.error || 'audio tidak tersedia');
+        if (media.size > 25 * 1024 * 1024) throw new Error('audio terlalu besar untuk STT');
+        const buffer = fs.readFileSync(mediaFilePath(media.path));
+        const transcript = await transcribeAudio(buffer, media.name, { contentType: String(media.mime || 'audio/ogg').split(';')[0] });
+        console.log(`[STT] Transcribed: "${transcript}"`);
+        content = transcript ? `[Voice Note] ${transcript}` : '[Voice Note - tidak ada ucapan terdeteksi]';
+      } catch (err) {
+        console.error('[STT] Failed to transcribe:', err.message);
+        content = info.kind === 'voice' ? '[Voice Note - tidak bisa ditranskripsi]' : '[Audio - tidak bisa ditranskripsi]';
+      }
+    } else if (media.error) {
+      console.warn(`[MEDIA] ${media.name}: ${media.error}`);
+      const tooBig = /melebihi batas/i.test(media.error);
+      content += tooBig
+        ? ` (file tidak dapat diunduh: ukuran melebihi batas ${config.MAX_FILE_MB} MB)`
+        : ' (file tidak dapat diunduh)';
+    } else {
+      console.log(`[MEDIA] Tersimpan: ${media.name} (${media.mime || '?'}, ${media.size} B)`);
     }
   }
 
-  saveMessage(chatJid, sender, content, false);
-  try { rememberFromMessage(msg); queueAvatar(getSock, chatJid); } catch (e) { console.warn('[CONTACT]', e.message); }
+  saveMessage(chatJid, sender, content, false, media);
+  try { rememberFromMessage(msg); queueAvatar(getS, chatJid); } catch (e) { console.warn('[CONTACT]', e.message); }
   emit('chat-updated', { jid: chatJid });
   console.log(`[MSG] ${sender}: ${content}`);
 
-  if (!config.AUTO_REPLY_ENABLED) {
+  // Kategorisasi berjalan sendiri (tidak menunggu balasan, tetap jalan walau balas otomatis mati).
+  const delay = (Number.isFinite(config.DEBOUNCE_MS) ? config.DEBOUNCE_MS : 8000) + 1500;
+  debounce(`cat:${chatJid}`, async () => {
+    const r = await classifyChat(chatJid);
+    if (r && !r.ok) console.warn(`[CATEGORY] Gagal mengklasifikasi ${chatJid}: ${r.error}`);
+  }, delay);
+
+  // Saklar global dan saklar per chat (dashboard) harus sama-sama aktif agar bot membalas.
+  if (!config.AUTO_REPLY_ENABLED || !isBotEnabledForChat(chatJid)) {
     return;
   }
 
   debounce(chatJid, async () => {
+    const s = getS();
+    if (!config.AUTO_REPLY_ENABLED || !isBotEnabledForChat(chatJid)) return;
     try {
       const reply = await chatWithAI(chatJid, content);
       saveMessage(chatJid, 'bot', reply, true);
       emit('chat-updated', { jid: chatJid });
       console.log(`[REPLY] ${chatJid}: ${reply}`);
-      await sock.sendMessage(chatJid, { text: reply });
+      await s.sendMessage(chatJid, { text: reply });
 
       const voiceFiles = getVoiceFiles();
       if (voiceFiles.length > 0) {
-        const { getHistory, formatHistoryForAI } = await import('./db.js');
         const history = getHistory(chatJid, 20);
         const aiHistory = formatHistoryForAI(history);
         const voiceFile = await selectVoiceFile(aiHistory);
         if (voiceFile) {
           const voicePath = getVoicePath(voiceFile);
           const audioBuffer = fs.readFileSync(voicePath);
-          await sock.sendMessage(chatJid, {
+          await s.sendMessage(chatJid, {
             audio: audioBuffer,
             mimetype: getVoiceMime(voiceFile),
             ptt: true,
@@ -209,9 +233,9 @@ async function handleMessage(msg) {
       }
     } catch (err) {
       console.error('[AI] Error:', formatAIError(err));
-      if (sock) {
+      if (s) {
         try {
-          await sock.sendMessage(chatJid, { text: 'Maaf, ada gangguan. Coba lagi nanti.' });
+          await s.sendMessage(chatJid, { text: 'Maaf, ada gangguan. Coba lagi nanti.' });
         } catch {}
       }
     }
@@ -235,7 +259,9 @@ export function logout() {
 
   try {
     clearMessages();
+    clearWaLabels();
     clearAvatars();
+    clearAllMedia();
   } catch (err) {
     console.error('[LOGOUT] Failed to clear database:', err.message);
   }

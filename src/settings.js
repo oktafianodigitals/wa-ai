@@ -1,8 +1,30 @@
 import fs from 'fs';
 import path from 'path';
-import { config, SETTING_KEYS, applyEnvOverrides } from './config.js';
+import { config, SETTING_KEYS, PROMPT_KEYS, applyEnvOverrides } from './config.js';
+import { getAppSetting, setAppSetting } from './db.js';
 
 const ENV_FILE = path.resolve('.env');
+
+/**
+ * Muat prompt dari database ke konfigurasi. Database menang atas .env.
+ * Nilai di .env hanya dipakai sekali sebagai data awal (disalin ke database bila belum ada).
+ */
+export function loadPromptSettings() {
+  const overrides = {};
+  for (const key of PROMPT_KEYS) {
+    const stored = getAppSetting(key);
+    if (stored !== null) { overrides[key] = stored; continue; }
+    let envVal = process.env[key];
+    if (typeof envVal === 'string' && envVal.trim() !== '') {
+      // Di .env tanpa tanda kutip, baris baru ditulis literal "\n"; kembalikan jadi baris baru sungguhan.
+      if (!envVal.includes('\n')) envVal = envVal.replace(/\\n/g, '\n');
+      setAppSetting(key, envVal);
+      overrides[key] = envVal;
+      console.log(`[SETTINGS] ${key} disalin dari .env ke database`);
+    }
+  }
+  if (Object.keys(overrides).length) applyEnvOverrides(overrides);
+}
 
 export function getSettings() {
   return {
@@ -18,6 +40,12 @@ export function getSettings() {
     AI_SYSTEM_PROMPT: config.AI_SYSTEM_PROMPT,
     AI_VOICE_SELECT_PROMPT: config.AI_VOICE_SELECT_PROMPT,
     AUTO_REPLY_ENABLED: !!config.AUTO_REPLY_ENABLED,
+    MAX_FILE_MB: String(config.MAX_FILE_MB),
+    AI_VISION_ENABLED: !!config.AI_VISION_ENABLED,
+    AUTO_CATEGORIZE_ENABLED: !!config.AUTO_CATEGORIZE_ENABLED,
+    CATEGORY_MIN_CONFIDENCE: String(config.CATEGORY_MIN_CONFIDENCE),
+    CATEGORY_PROMPT: config.CATEGORY_PROMPT,
+    WA_LABEL_SYNC_ENABLED: !!config.WA_LABEL_SYNC_ENABLED,
     AI_API_KEY_MASKED: maskKey(config.AI_API_KEY),
     HAS_API_KEY: !!config.AI_API_KEY,
   };
@@ -48,10 +76,16 @@ export function updateSettings(payload) {
     return result;
   }
 
-  writeEnvFile(overrides);
+  // Prompt -> database; sisanya -> .env
+  const envChanges = {};
+  for (const [k, v] of Object.entries(overrides)) {
+    if (PROMPT_KEYS.includes(k)) setAppSetting(k, v);
+    else envChanges[k] = v;
+  }
+  if (Object.keys(envChanges).length) writeEnvFile(envChanges);
   applyEnvOverrides(overrides);
 
-  return { ...result, note: 'Beberapa pengaturan (DB/SESSION) baru aktif setelah restart.' };
+  return { ...result, note: 'Prompt tersimpan di database. Pengaturan DB/SESSION baru aktif setelah restart.' };
 }
 
 function maskKey(key) {

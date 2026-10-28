@@ -2,13 +2,14 @@ import { config } from './config.js';
 
 const timers = new Map();
 
-export function debounce(chatJid, callback) {
+export function debounce(chatJid, callback, delayOverride) {
   if (!chatJid) return;
   if (timers.has(chatJid)) {
     clearTimeout(timers.get(chatJid));
   }
 
-  const delay = typeof config.DEBOUNCE_MS === 'number' && config.DEBOUNCE_MS >= 0 ? config.DEBOUNCE_MS : 8000;
+  const delay = typeof delayOverride === 'number' && delayOverride >= 0 ? delayOverride
+    : typeof config.DEBOUNCE_MS === 'number' && config.DEBOUNCE_MS >= 0 ? config.DEBOUNCE_MS : 8000;
 
   const timer = setTimeout(() => {
     timers.delete(chatJid);

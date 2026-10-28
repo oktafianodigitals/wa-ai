@@ -1,9 +1,11 @@
 node_modules
 package-lock.json
-wa-ai*
 .env
 .env.bak
 session.key
 data.sqlite3*
+database.sqlite3*
 voice-notes
 avatars
+uploads
+we-ai-v*

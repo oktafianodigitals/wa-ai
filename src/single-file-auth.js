@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { initAuthCreds, BufferJSON } from '@whiskeysockets/baileys';
+import { initAuthCreds, BufferJSON, proto } from '@whiskeysockets/baileys';
 
 const KEY_MAP = {
   'pre-key': 'preKeys',
@@ -93,7 +93,10 @@ export function useSingleFileAuthState(filename) {
           if (!Array.isArray(ids)) return data;
           for (const id of ids) {
             if (typeof id === 'string' && store[id] !== undefined) {
-              data[id] = store[id];
+              let value = store[id];
+              // Kunci sinkronisasi app-state harus berupa protobuf (seperti useMultiFileAuthState bawaan Baileys).
+              if (type === 'app-state-sync-key' && value) value = proto.Message.AppStateSyncKeyData.fromObject(value);
+              data[id] = value;
             }
           }
           return data;

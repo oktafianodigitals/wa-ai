@@ -34,6 +34,10 @@
       <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M11 18h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
       <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4.5" y="8" width="15" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 8V4.5M9 13v1.5M15 13v1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
       <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="18" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.2 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+      <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.3 7.3a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.3-7.3a1 1 0 0 1-.3-.7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M6.5 3.5h7l4.5 4.5v11a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5z M13.5 3.5V8H18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M4 19h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
       <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z" fill="currentColor"/></symbol>
     </defs>
   </svg>
@@ -75,6 +79,7 @@
       <nav class="side-nav" aria-label="Menu utama">
         <button class="nav-item active" data-page="dashboard"><svg class="ic"><use href="#i-dash" /></svg><span>Dashboard</span></button>
         <button class="nav-item" data-page="chats"><svg class="ic"><use href="#i-chat" /></svg><span>Chat</span><i class="nav-badge" id="nav-chat-badge" hidden></i></button>
+        <button class="nav-item" data-page="categories"><svg class="ic"><use href="#i-tag" /></svg><span>Kategori</span></button>
         <button class="nav-item" data-page="voice"><svg class="ic"><use href="#i-mic" /></svg><span>Voice note</span></button>
         <button class="nav-item" data-page="settings"><svg class="ic"><use href="#i-gear" /></svg><span>Pengaturan</span></button>
       </nav>
@@ -190,6 +195,7 @@
                   <svg class="ic"><use href="#i-search" /></svg>
                   <input type="search" id="chat-search" placeholder="Cari nomor atau isi pesan" autocomplete="off">
                 </div>
+                <div class="cat-filter" id="cat-filter" role="group" aria-label="Filter kategori" hidden></div>
               </div>
               <div id="chat-list" class="chat-list" role="listbox" aria-label="Daftar percakapan"></div>
             </div>
@@ -208,8 +214,19 @@
                     <div class="convo-name" id="convo-name"></div>
                     <div class="convo-sub" id="convo-sub"></div>
                   </div>
+                  <label class="convo-bot" id="convo-bot" title="Bot membalas chat ini secara otomatis">
+                    <span class="switch"><input type="checkbox" id="convo-bot-toggle"><span class="switch-track"></span></span>
+                    <span class="convo-bot-text"><b>Balas otomatis</b><small id="convo-bot-status"></small></span>
+                  </label>
                   <button class="btn sm ghost danger" type="button" id="convo-clear" title="Hapus seluruh riwayat chat ini dan reset konteks AI"><svg class="ic"><use href="#i-trash" /></svg><span>Bersihkan chat</span></button>
                   <button class="icon-btn" type="button" id="convo-reload" aria-label="Muat ulang percakapan"><svg class="ic"><use href="#i-refresh" /></svg></button>
+                </div>
+                <div class="convo-cat" id="convo-cat">
+                  <svg class="ic"><use href="#i-tag" /></svg>
+                  <label for="convo-category">Kategori</label>
+                  <select id="convo-category" class="set-input"></select>
+                  <button class="btn sm ghost" type="button" id="convo-categorize" title="Minta AI membaca percakapan dan menentukan kategorinya"><svg class="ic"><use href="#i-spark" /></svg><span>Tentukan dengan AI</span></button>
+                  <span class="convo-cat-info" id="convo-cat-info"></span>
                 </div>
                 <div class="messages" id="messages" aria-live="polite"></div>
                 <form class="composer" id="composer" autocomplete="off">
@@ -219,6 +236,34 @@
               </div>
             </div>
           </div>
+        </section>
+
+        <!-- ===== KATEGORI ===== -->
+        <section class="page" id="page-categories">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Kategori customer <span class="count" id="cat-count"></span></h2>
+              <div class="inline-actions">
+                <button class="btn sm ghost" type="button" id="cat-sync" title="Ambil ulang label dan pemasangannya dari WhatsApp"><svg class="ic"><use href="#i-spark" /></svg><span>Sinkronkan label WhatsApp</span></button>
+                <button class="btn sm ghost" type="button" id="cat-classify-all" title="AI membaca ulang semua percakapan dan memasang labelnya"><svg class="ic"><use href="#i-spark" /></svg><span>Kelompokkan semua chat</span></button>
+              </div>
+            </div>
+            <p class="cat-explain">Kategori diambil dari <b>Label WhatsApp</b> (fitur WhatsApp Business), jadi buat, ubah, atau hapus labelnya langsung di aplikasi WhatsApp. Setelah pelanggan mengirim pesan, AI membaca percakapannya lalu <em>memasang label yang tepat</em> pada chat tersebut, tanpa membuat kategori baru. Isi <b>kriteria</b> di bawah (opsional) agar penilaian AI makin tepat. Label yang kamu pasang manual dari dashboard tidak diubah AI.</p>
+            <p class="cat-sync" id="cat-sync-status" aria-live="polite"></p>
+
+            <form id="cat-form" class="cat-form" autocomplete="off" hidden>
+              <div class="fields">
+                <label class="field"><span>Nama kategori</span><input type="text" id="cat-name" class="set-input" maxlength="40" required></label>
+                <label class="field wide"><span>Kriteria untuk AI</span><textarea id="cat-desc" class="set-input" rows="3" maxlength="500" placeholder="Kapan pelanggan masuk kategori ini? mis. Mengirim bukti transfer atau konfirmasi pembayaran."></textarea></label>
+              </div>
+              <div class="inline-actions">
+                <button class="btn primary" type="submit" id="cat-save">Simpan</button>
+                <button class="btn ghost" type="button" id="cat-cancel">Batal</button>
+              </div>
+            </form>
+
+            <ul id="cat-list" class="cat-list"></ul>
+          </section>
         </section>
 
         <!-- ===== VOICE ===== -->
@@ -335,6 +380,44 @@
 
             <section class="panel sgroup">
               <div class="sgroup-head">
+                <h2>Lampiran &amp; kategori</h2>
+                <p>Bot menerima semua jenis file. Daftar kategori diatur di halaman Kategori.</p>
+              </div>
+              <div class="fields">
+                <label class="field">
+                  <span>Batas ukuran file (MB)</span>
+                  <input type="number" id="set-MAX_FILE_MB" class="set-input" min="1" max="2000">
+                  <small>Lebih besar dari ini tidak diunduh, tetapi pelanggan tetap dibalas.</small>
+                </label>
+                <label class="field">
+                  <span>Kirim gambar ke AI (vision)</span>
+                  <select id="set-AI_VISION_ENABLED" class="set-input"><option value="false">Nonaktif</option><option value="true">Aktif</option></select>
+                  <small>Aktifkan hanya bila model mendukung gambar. Bila ditolak, bot mengulang tanpa gambar.</small>
+                </label>
+                <label class="field">
+                  <span>Kelompokkan customer otomatis</span>
+                  <select id="set-AUTO_CATEGORIZE_ENABLED" class="set-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+                  <small>Setiap percakapan memakai satu panggilan AI tambahan.</small>
+                </label>
+                <label class="field">
+                  <span>Keyakinan minimum AI (0–100)</span>
+                  <input type="number" id="set-CATEGORY_MIN_CONFIDENCE" class="set-input" min="0" max="100">
+                  <small>Di bawah angka ini AI tidak memindahkan kategori.</small>
+                </label>
+                <label class="field">
+                  <span>Sinkron Label WhatsApp</span>
+                  <select id="set-WA_LABEL_SYNC_ENABLED" class="set-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+                  <small>Kategori diambil dari Label WhatsApp Business dan label dipasang ke chat oleh bot.</small>
+                </label>
+                <label class="field wide">
+                  <span>Instruksi tambahan pengelompokan</span>
+                  <textarea id="set-CATEGORY_PROMPT" class="set-input" rows="3" placeholder="Opsional. mis. Pelanggan yang menyebut nomor invoice dianggap Pelanggan Lama."></textarea>
+                </label>
+              </div>
+            </section>
+
+            <section class="panel sgroup">
+              <div class="sgroup-head">
                 <h2>Sistem</h2>
                 <p>Perubahan di bagian ini berlaku setelah bot dijalankan ulang. Port dashboard diatur lewat <code>PORT</code> di file <code>.env</code>.</p>
               </div>
@@ -372,6 +455,7 @@
     <nav class="tabbar" aria-label="Menu utama (ponsel)">
       <button class="tab active" data-page="dashboard"><svg class="ic"><use href="#i-dash" /></svg><span>Dashboard</span></button>
       <button class="tab" data-page="chats"><svg class="ic"><use href="#i-chat" /></svg><span>Chat</span></button>
+      <button class="tab" data-page="categories"><svg class="ic"><use href="#i-tag" /></svg><span>Kategori</span></button>
       <button class="tab" data-page="voice"><svg class="ic"><use href="#i-mic" /></svg><span>Voice</span></button>
       <button class="tab" data-page="settings"><svg class="ic"><use href="#i-gear" /></svg><span>Atur</span></button>
     </nav>

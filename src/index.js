@@ -1,4 +1,4 @@
-const APP_VERSION = '2.5.3';
+const APP_VERSION = '2.8.1';
 import './logger.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,6 +6,7 @@ import express from 'express';
 import http from 'http';
 import { config } from './config.js';
 import { initDB } from './db.js';
+import { loadPromptSettings } from './settings.js';
 import { startWA, getSock } from './baileys.js';
 import { initRouter } from './router.js';
 import { initSocket } from './socket.js';
@@ -47,6 +48,7 @@ async function main() {
   console.log(`=== WA-AI Auto Reply Bot v${APP_VERSION} ===`);
 
   initDB();
+  loadPromptSettings();
   console.log('[BOOT] Database initialized');
 
   const app = express();

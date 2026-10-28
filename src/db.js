@@ -17,6 +17,15 @@ export function initDB() {
       timestamp INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_jid, timestamp);
+    CREATE TABLE IF NOT EXISTS contacts (
+      jid TEXT PRIMARY KEY,
+      name TEXT,
+      phone TEXT,
+      pic_checked INTEGER DEFAULT 0,
+      pic_ok INTEGER DEFAULT 0,
+      pic_version INTEGER DEFAULT 0,
+      updated INTEGER DEFAULT 0
+    );
   `);
 
   console.log(`[DB] SQLite connected: ${config.DB_FILE}`);
@@ -55,22 +64,64 @@ export function formatHistoryForAI(history) {
 
 export function listChats() {
   const stmt = getDB().prepare(`
-    SELECT chat_jid,
+    SELECT m.chat_jid,
            COUNT(*) as total_messages,
-           MAX(timestamp) as last_time,
+           MAX(m.timestamp) as last_time,
            (
              SELECT content FROM messages m2
-             WHERE m2.chat_jid = messages.chat_jid
-             ORDER BY m2.timestamp DESC LIMIT 1
-           ) as last_message
-    FROM messages
-    GROUP BY chat_jid
+             WHERE m2.chat_jid = m.chat_jid
+             ORDER BY m2.timestamp DESC, m2.id DESC LIMIT 1
+           ) as last_message,
+           c.name as contact_name, c.phone as contact_phone,
+           c.pic_ok as pic_ok, c.pic_version as pic_version
+    FROM messages m
+    LEFT JOIN contacts c ON c.jid = m.chat_jid
+    GROUP BY m.chat_jid
     ORDER BY last_time DESC
   `);
   return stmt.all();
 }
 
+/* ---------- Kontak (nama, nomor, foto profil) ---------- */
+
+export function getContact(jid) {
+  return getDB().prepare('SELECT * FROM contacts WHERE jid = ?').get(jid) || null;
+}
+
+export function upsertContact(jid, { name, phone } = {}) {
+  if (!jid) return;
+  const db = getDB();
+  const cur = getContact(jid);
+  const cleanName = typeof name === 'string' ? name.trim().slice(0, 120) : '';
+  const cleanPhone = typeof phone === 'string' ? phone.replace(/\D/g, '').slice(0, 20) : '';
+  if (!cur) {
+    db.prepare('INSERT INTO contacts (jid, name, phone, updated) VALUES (?, ?, ?, ?)')
+      .run(jid, cleanName || null, cleanPhone || null, Date.now());
+    return;
+  }
+  const nextName = cleanName || cur.name;
+  const nextPhone = cleanPhone || cur.phone;
+  if (nextName !== cur.name || nextPhone !== cur.phone) {
+    db.prepare('UPDATE contacts SET name = ?, phone = ?, updated = ? WHERE jid = ?')
+      .run(nextName, nextPhone, Date.now(), jid);
+  }
+}
+
+export function setContactPicture(jid, ok, version = Date.now()) {
+  upsertContact(jid);
+  getDB().prepare('UPDATE contacts SET pic_checked = ?, pic_ok = ?, pic_version = ? WHERE jid = ?')
+    .run(Date.now(), ok ? 1 : 0, ok ? version : (getContact(jid)?.pic_version || 0), jid);
+}
+
+export function listChatJids() {
+  return getDB().prepare('SELECT DISTINCT chat_jid FROM messages').all().map(r => r.chat_jid);
+}
+export function clearChat(chatJid) {
+  return getDB().prepare('DELETE FROM messages WHERE chat_jid = ?').run(chatJid).changes;
+}
+
 export function clearMessages() {
+  getDB().prepare('DELETE FROM contacts').run();
   getDB().prepare('DELETE FROM messages').run();
   getDB().prepare('DELETE FROM sqlite_sequence WHERE name = ?').run('messages');
 }
@@ -102,6 +153,9 @@ export function getStats() {
 
 export function getRecentMessages(limit = 8) {
   return getDB().prepare(
-    'SELECT id, chat_jid, sender, content, is_from_bot, timestamp FROM messages ORDER BY timestamp DESC, id DESC LIMIT ?'
+    `SELECT m.id, m.chat_jid, m.sender, m.content, m.is_from_bot, m.timestamp,
+            c.name as contact_name, c.phone as contact_phone, c.pic_ok as pic_ok, c.pic_version as pic_version
+     FROM messages m LEFT JOIN contacts c ON c.jid = m.chat_jid
+     ORDER BY m.timestamp DESC, m.id DESC LIMIT ?`
   ).all(limit);
 }

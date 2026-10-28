@@ -285,8 +285,10 @@ code { font-family: var(--mono); font-size: .88em; background: var(--surface-2);
 /* ---------- Avatar ---------- */
 .avatar {
   width: 42px; height: 42px; border-radius: 50%; flex: none; display: grid; place-items: center;
-  font-weight: 700; font-size: 14px; color: #fff; letter-spacing: .02em;
+  font-weight: 700; font-size: 15px; color: #fff; letter-spacing: .02em;
+  position: relative; overflow: hidden;
 }
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .avatar.sm { width: 34px; height: 34px; font-size: 12px; }
 
 /* ---------- Chat ---------- */
@@ -309,6 +311,12 @@ code { font-family: var(--mono); font-size: .88em; background: var(--surface-2);
   border-bottom: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-top: 0; text-align: left;
 }
 .chat-row:hover { background: var(--surface-2); }
+.row-clear { width: 32px; height: 32px; opacity: 0; flex: none; color: var(--text-3); }
+.row-clear .ic { width: 17px; height: 17px; }
+.chat-row:hover .row-clear, .chat-row:focus-within .row-clear { opacity: 1; }
+.row-clear:hover { background: var(--coral-bg); color: var(--coral); }
+@media (hover: none) { .row-clear { opacity: .8; } }
+.btn.ghost.danger:hover { background: var(--coral-bg); border-color: transparent; }
 .chat-row.active { background: var(--signal-bg); }
 .chat-row-main { flex: 1; min-width: 0; }
 .chat-row-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
@@ -500,6 +508,8 @@ textarea.set-input { resize: vertical; line-height: 1.45; }
   .chat-shell.show-convo .chat-list-pane { display: none; }
   .chat-shell.show-convo .convo-pane { display: flex; }
   .back-btn { display: grid; }
+  #convo-clear span { display: none; }
+  #convo-clear { width: 36px; padding: 0; }
   .messages { padding: 14px 12px 8px; }
   .msg { max-width: 88%; }
 

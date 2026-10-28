@@ -1,4 +1,4 @@
-const APP_VERSION = '2.5.1';
+const APP_VERSION = '2.5.3';
 import './logger.js';
 import path from 'path';
 import { fileURLToPath } from 'url';

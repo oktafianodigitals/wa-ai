@@ -1,12 +1,14 @@
 import express from 'express';
 import { getSock, logout } from './baileys.js';
-import { getHistory, listChats, getStats, getRecentMessages, saveMessage } from './db.js';
+import { clearChat, getContact, getHistory, listChats, getStats, getRecentMessages, saveMessage } from './db.js';
 import {
   getVoiceDetails, getVoicePath, saveVoiceFile, deleteVoiceFile, sanitizeVoiceName, getVoiceMime,
 } from './voice-select.js';
 import { pingAI, diagnoseAI } from './ai-client.js';
 import { emit } from './socket.js';
 import fs from 'fs';
+import { cancelDebounce } from './debounce.js';
+import { avatarFile, queueAvatar, phoneFromJid } from './contacts.js';
 import { getSettings, updateSettings } from './settings.js';
 import { config } from './config.js';
 
@@ -43,10 +45,10 @@ router.get('/health', (req, res) => {
       status: 'ok',
       connected: !!sock?.user,
       timestamp: Date.now(),
-      version: '2.5.1',
+      version: '2.5.3',
     });
   } catch (err) {
-    res.json({ status: 'ok', timestamp: Date.now(), version: '2.5.1' });
+    res.json({ status: 'ok', timestamp: Date.now(), version: '2.5.3' });
   }
 });
 
@@ -127,16 +129,56 @@ router.get('/history/:jid', (req, res) => {
     if (!Number.isFinite(limit) || limit < 1) limit = config.MAX_HISTORY;
     if (limit > 200) limit = 200;
     const history = getHistory(decoded, limit);
-    res.json({ jid: decoded, messages: history });
+    const c = getContact(decoded);
+    res.json({
+      jid: decoded,
+      messages: history,
+      contact: {
+        name: c?.name || '', phone: c?.phone || phoneFromJid(decoded),
+        pic_ok: c?.pic_ok || 0, pic_version: c?.pic_version || 0,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+router.get('/avatar/:jid', (req, res) => {
+  const jid = String(req.params.jid || '');
+  if (!isValidJid(jid)) return res.status(400).end();
+  const c = getContact(jid);
+  const file = avatarFile(jid);
+  if (!c?.pic_ok || !fs.existsSync(file)) return res.status(404).end();
+  res.set('Cache-Control', 'private, max-age=3600');
+  res.type('image/jpeg').sendFile(file);
+});
+
+router.post('/contacts/refresh', (req, res) => {
+  const jid = String(req.body?.jid || '');
+  if (!isValidJid(jid)) return res.status(400).json({ error: 'jid tidak valid' });
+  queueAvatar(getSock, jid, { force: true });
+  res.json({ ok: true });
 });
 
 router.get('/chats', (req, res) => {
   try {
     const chats = listChats();
     res.json({ chats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bersihkan percakapan: hapus riwayat satu chat sehingga konteks AI mulai dari nol.
+router.delete('/chats/:jid', (req, res) => {
+  try {
+    const jid = decodeURIComponent(req.params.jid || '');
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'jid tidak valid' });
+    cancelDebounce(jid); // batalkan balasan AI yang masih menunggu untuk chat ini
+    const deleted = clearChat(jid);
+    emit('chat-updated', { jid });
+    console.log(`[CHAT] Percakapan ${jid} dibersihkan (${deleted} pesan)`);
+    res.json({ ok: true, deleted });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

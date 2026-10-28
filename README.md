@@ -87,6 +87,18 @@ Sekarang kode error asli ditampilkan, mis. `Koneksi ditolak (ECONNREFUSED) ke 12
 
 ## 📈 Riwayat Update
 
+### v2.5.3
+- **Bersihkan percakapan**: tombol hapus di setiap baris chat (muncul saat disorot) dan tombol "Bersihkan chat" di header percakapan, dengan konfirmasi
+  - Menghapus riwayat satu chat dari database sehingga konteks AI mulai dari nol; balasan AI yang masih menunggu untuk chat itu dibatalkan
+  - Endpoint baru: `DELETE /api/chats/:jid`
+
+### v2.5.2
+- **Chat menampilkan identitas kontak**: nama (nama profil WhatsApp), nomor, dan foto profil; bila tidak ada foto tampil inisial
+  - Tabel baru `contacts` di database; foto di-cache ke folder `avatars/` dan diperbarui tiap 24 jam
+  - Kontak berformat `@lid` tidak membawa nomor telepon (WhatsApp menyembunyikannya), jadi hanya nama yang tampil
+  - Endpoint baru: `GET /api/avatar/:jid`, `POST /api/contacts/refresh`
+  - Username WhatsApp belum tersedia lewat Baileys 6.x
+
 ### v2.5.1
 - `PORT` dipindah ke `.env` (tidak lagi ada di form Pengaturan dashboard); ditambahkan ke `.env.example`
 

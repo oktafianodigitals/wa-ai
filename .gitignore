@@ -1,8 +1,9 @@
 node_modules
+package-lock.json
+wa-ai*
 .env
 .env.bak
 session.key
 data.sqlite3*
-package-lock.json
-wa-ai-v2.5.0.zip
-wa-ai-v2.5.1.zip
+voice-notes
+avatars

@@ -74,17 +74,33 @@ function debounce(fn, ms) {
   return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
 }
 
-/* Nama & avatar dari JID */
+/* Kontak: nama, nomor, foto profil */
+const contactMap = new Map();
+
+function rememberContact(jid, row) {
+  if (!jid || !row) return;
+  const prev = contactMap.get(jid) || {};
+  contactMap.set(jid, {
+    name: row.contact_name ?? row.name ?? prev.name ?? '',
+    phone: row.contact_phone ?? row.phone ?? prev.phone ?? '',
+    pic: (row.pic_ok ?? (prev.pic ? 1 : 0)) ? (row.pic_version || prev.pic || 1) : 0,
+  });
+}
+
 function parseJid(jid) {
   const [local = '', domain = ''] = String(jid).split('@');
-  const digits = local.replace(/\D/g, '');
-  if (domain === 's.whatsapp.net' && digits) {
-    return { name: '+' + digits, sub: 'Nomor WhatsApp', initials: digits.slice(-2) };
-  }
-  if (domain === 'lid') {
-    return { name: 'Kontak ' + local.slice(-5), sub: `ID tertaut ${local}`, initials: local.slice(-2) };
-  }
-  return { name: local || jid, sub: jid, initials: (local || '?').slice(0, 2).toUpperCase() };
+  const c = contactMap.get(jid) || {};
+  const digits = c.phone || (domain === 's.whatsapp.net' ? local.split(':')[0].replace(/\D/g, '') : '');
+  const phone = digits ? '+' + digits : '';
+  const idLabel = domain === 'lid' ? 'Kontak ' + local.slice(-5) : (local || jid);
+  const name = c.name || phone || idLabel;
+  let sub;
+  if (c.name && phone) sub = phone;
+  else if (phone) sub = 'Nomor WhatsApp';
+  else sub = domain === 'lid' ? `Nomor disembunyikan oleh WhatsApp · ID ${local}` : jid;
+  const base = c.name || digits || local;
+  const letters = c.name ? [...c.name.replace(/[^\p{L}\p{N}]/gu, '')][0] : '';
+  return { name, sub, phone, hasName: !!c.name, pic: c.pic || 0, initials: (letters || base.slice(-2) || '?').toUpperCase() };
 }
 
 const AVATAR_COLORS = ['#2f6f9f', '#7a5aa6', '#b5651d', '#2e8b78', '#a8476a', '#5b7a2f', '#3f5fa8', '#9a5b3c'];
@@ -93,9 +109,10 @@ function avatarColor(seed) {
   for (const ch of String(seed)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
-function avatarHtml(jid, cls = '') {
+function avatarHtml(jid, cls = '', id = '') {
   const p = parseJid(jid);
-  return `<div class="avatar ${cls}" style="background:${avatarColor(jid)}">${esc(p.initials)}</div>`;
+  const img = p.pic ? `<img src="/api/avatar/${encodeURIComponent(jid)}?v=${p.pic}" alt="" loading="lazy" onerror="this.remove()">` : '';
+  return `<div class="avatar ${cls}" ${id ? `id="${id}"` : ''} style="background:${avatarColor(jid)}"><span>${esc(p.initials)}</span>${img}</div>`;
 }
 
 function fmtTime(ts) {
@@ -233,6 +250,7 @@ async function loadRecent() {
   const ul = $('recent-list');
   try {
     const { messages } = await api('/recent');
+    messages.forEach((m) => rememberContact(m.chat_jid, m));
     if (!messages.length) {
       ul.innerHTML = '<li class="empty" style="cursor:default"><div><strong>Belum ada aktivitas</strong>Pesan masuk dan balasan bot akan tampil di sini.</div></li>';
       return;
@@ -346,6 +364,7 @@ async function loadChats() {
   try {
     const d = await api('/chats');
     state.chats = Array.isArray(d.chats) ? d.chats : [];
+    state.chats.forEach((c) => rememberContact(c.chat_jid, c));
     renderChatList();
   } catch {
     $('chat-list').innerHTML = '<div class="empty"><strong>Gagal memuat chat</strong>Coba segarkan halaman.</div>';
@@ -355,7 +374,7 @@ async function loadChats() {
 function renderChatList() {
   const q = $('chat-search').value.trim().toLowerCase();
   const list = q
-    ? state.chats.filter((c) => (c.chat_jid + ' ' + parseJid(c.chat_jid).name + ' ' + (c.last_message || '')).toLowerCase().includes(q))
+    ? state.chats.filter((c) => (c.chat_jid + ' ' + parseJid(c.chat_jid).name + ' ' + parseJid(c.chat_jid).phone + ' ' + (c.last_message || '')).toLowerCase().includes(q))
     : state.chats;
   const box = $('chat-list');
   if (!list.length) {
@@ -366,12 +385,13 @@ function renderChatList() {
   }
   box.innerHTML = list.map((c) => {
     const p = parseJid(c.chat_jid);
-    return `<button class="chat-row ${c.chat_jid === state.activeJid ? 'active' : ''}" data-jid="${esc(c.chat_jid)}" role="option">
+    return `<div class="chat-row ${c.chat_jid === state.activeJid ? 'active' : ''}" data-jid="${esc(c.chat_jid)}" role="option" tabindex="0">
       ${avatarHtml(c.chat_jid)}
       <div class="chat-row-main">
         <div class="chat-row-top"><span class="chat-row-name">${esc(p.name)}</span><span class="chat-row-time">${esc(listTime(c.last_time))}</span></div>
         <div class="chat-row-last">${esc(c.last_message || '(tanpa pesan)')}</div>
-      </div></button>`;
+      </div>
+      <button class="icon-btn row-clear" type="button" aria-label="Bersihkan chat ${esc(p.name)}" title="Bersihkan chat">${icon('trash')}</button></div>`;
   }).join('');
 }
 
@@ -381,13 +401,30 @@ function openChat(jid) {
   $('chat-shell').classList.add('show-convo');
   $('convo-empty').hidden = true;
   $('convo').hidden = false;
-  const p = parseJid(jid);
-  $('convo-avatar').outerHTML = `<div class="avatar" id="convo-avatar" style="background:${avatarColor(jid)}">${esc(p.initials)}</div>`;
-  $('convo-name').textContent = p.name;
-  $('convo-sub').textContent = p.sub;
+  updateConvoHeader(jid);
+  api('/contacts/refresh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jid }) })
+    .then(() => setTimeout(() => { loadChats(); if (state.activeJid === jid) loadConversation(); }, 5000)).catch(() => {});
   renderChatList();
   loadConversation(true);
   setTimeout(() => { if (window.matchMedia('(min-width: 801px)').matches) $('composer-input').focus(); }, 50);
+}
+
+async function clearConversation(jid) {
+  const p = parseJid(jid);
+  if (!confirm(`Bersihkan percakapan dengan ${p.name}?\n\nSeluruh riwayat chat ini dihapus dari database dan AI mulai dari nol pada pesan berikutnya. Pesan di aplikasi WhatsApp tidak ikut terhapus.`)) return;
+  try {
+    const r = await api('/chats/' + encodeURIComponent(jid), { method: 'DELETE' });
+    toast(`Percakapan dibersihkan (${r.deleted} pesan dihapus)`);
+    if (state.activeJid === jid) closeConvo();
+    loadChats(); loadStats(); loadRecent();
+  } catch (err) { toast('Gagal membersihkan: ' + err.message, 'error'); }
+}
+
+function updateConvoHeader(jid) {
+  const p = parseJid(jid);
+  $('convo-avatar').outerHTML = avatarHtml(jid, '', 'convo-avatar');
+  $('convo-name').textContent = p.name;
+  $('convo-sub').textContent = p.sub;
 }
 
 function closeConvo() {
@@ -406,6 +443,7 @@ async function loadConversation(forceBottom = false) {
   try {
     const d = await api('/history/' + encodeURIComponent(jid) + '?limit=200');
     if (state.activeJid !== jid) return;
+    if (d.contact) { rememberContact(jid, d.contact); updateConvoHeader(jid); }
     const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
     renderMessages(d.messages || []);
     if (forceBottom || nearBottom) box.scrollTop = box.scrollHeight;
@@ -460,8 +498,15 @@ function initChat() {
   $('chat-search').addEventListener('input', debounce(renderChatList, 120));
   $('chat-list').addEventListener('click', (e) => {
     const row = e.target.closest('.chat-row');
-    if (row) openChat(row.dataset.jid);
+    if (!row) return;
+    if (e.target.closest('.row-clear')) clearConversation(row.dataset.jid);
+    else openChat(row.dataset.jid);
   });
+  $('chat-list').addEventListener('keydown', (e) => {
+    const row = e.target.closest('.chat-row');
+    if (row && e.target === row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openChat(row.dataset.jid); }
+  });
+  $('convo-clear').addEventListener('click', () => state.activeJid && clearConversation(state.activeJid));
   $('convo-back').addEventListener('click', closeConvo);
   $('convo-reload').addEventListener('click', () => loadConversation(true));
   $('composer').addEventListener('submit', sendFromComposer);

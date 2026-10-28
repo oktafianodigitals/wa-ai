@@ -14,6 +14,7 @@ import { transcribeAudio } from './stt.js';
 import { selectVoiceFile, getVoicePath, getVoiceFiles, getVoiceMime } from './voice-select.js';
 import { formatAIError } from './ai.js';
 import { debounce } from './debounce.js';
+import { rememberFromMessage, rememberContacts, queueAvatar, queueAllAvatars, clearAvatars } from './contacts.js';
 import { emit, setLatestQr, clearLatestQr } from './socket.js';
 import { useSingleFileAuthState } from './single-file-auth.js';
 
@@ -108,11 +109,15 @@ export async function startWA() {
         console.log('[WA] Connected successfully!');
         clearLatestQr();
         try { emit('status', { connected: true, user: sock.user }); } catch {}
+        setTimeout(() => queueAllAvatars(getSock), 3000);
       }
     } catch (e) {
       console.error('[WA] connection.update error:', e?.message || e);
     }
   });
+
+  sock.ev.on('contacts.upsert', (list) => { try { rememberContacts(list); } catch {} });
+  sock.ev.on('contacts.update', (list) => { try { rememberContacts(list); } catch {} });
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
@@ -169,6 +174,7 @@ async function handleMessage(msg) {
   }
 
   saveMessage(chatJid, sender, content, false);
+  try { rememberFromMessage(msg); queueAvatar(getSock, chatJid); } catch (e) { console.warn('[CONTACT]', e.message); }
   emit('chat-updated', { jid: chatJid });
   console.log(`[MSG] ${sender}: ${content}`);
 
@@ -229,6 +235,7 @@ export function logout() {
 
   try {
     clearMessages();
+    clearAvatars();
   } catch (err) {
     console.error('[LOGOUT] Failed to clear database:', err.message);
   }

@@ -1,6 +1,6 @@
 {
   "name": "wa-ai-auto-reply",
-  "version": "2.5.1",
+  "version": "2.5.3",
   "description": "WhatsApp Auto Reply AI using Baileys",
   "main": "src/index.js",
   "type": "module",

@@ -1,4 +1,4 @@
-# WA-AI Auto Reply Bot v2.6.0
+# WA-AI Auto Reply Bot v2.8
 
 WhatsApp Auto Reply AI — Sistem chat otomatis menggunakan Baileys + AI.
 

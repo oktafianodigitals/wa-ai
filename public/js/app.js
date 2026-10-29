@@ -6,7 +6,7 @@ const SETTING_FIELDS = [
   'AI_BASE_URL', 'AI_API_KEY', 'AI_MODEL',
   'AI_BASE_URL_STT', 'AI_MODEL_STT',
   'MAX_HISTORY', 'DEBOUNCE_MS',
-  'EXTRA_PROMPT', 'AI_SYSTEM_PROMPT', 'AI_VOICE_SELECT_PROMPT',
+  'EXTRA_PROMPT', 'AI_SYSTEM_PROMPT',
   'MAX_FILE_MB', 'AI_VISION_ENABLED', 'AUTO_CATEGORIZE_ENABLED', 'CATEGORY_MIN_CONFIDENCE', 'CATEGORY_PROMPT', 'WA_LABEL_SYNC_ENABLED',
 ];
 const BOOL_FIELDS = ['AUTO_REPLY_ENABLED', 'AI_VISION_ENABLED', 'AUTO_CATEGORIZE_ENABLED', 'WA_LABEL_SYNC_ENABLED'];
@@ -15,7 +15,6 @@ const PAGES = {
   dashboard: { title: 'Dashboard', subtitle: 'Kondisi bot dan jalur koneksinya saat ini' },
   chats: { title: 'Chat', subtitle: 'Riwayat percakapan dan balasan manual' },
   categories: { title: 'Kategori', subtitle: 'Label WhatsApp sebagai kategori; AI memasang label yang tepat otomatis' },
-  voice: { title: 'Voice note', subtitle: 'Pustaka audio yang bisa dikirim bot' },
   settings: { title: 'Pengaturan', subtitle: 'Koneksi AI, perilaku balasan, dan sistem' },
 };
 
@@ -28,7 +27,6 @@ const state = {
   autoReply: true,
   settingsDirty: false,
   unread: 0,
-  voice: [],
   categories: [],
   catSync: null,
   catFilter: 'all',   // 'all' | 'none' | id kategori
@@ -163,7 +161,6 @@ function navigateTo(page) {
   if (page === 'dashboard') { loadStats(); loadRecent(); loadAiStatus(); }
   if (page === 'chats') { setUnread(0); loadChats(); }
   if (page === 'categories') loadCategories();
-  if (page === 'voice') loadVoiceFiles();
   if (page === 'settings') { if (!state.settingsDirty) loadSettings(); loadLogs(); }
 }
 
@@ -802,118 +799,6 @@ function initChat() {
   });
 }
 
-/* ---------------- Voice note ---------------- */
-const player = new Audio();
-let playingName = null;
-
-player.addEventListener('timeupdate', () => {
-  if (!playingName || !player.duration) return;
-  const row = document.querySelector(`.voice-row[data-name="${CSS.escape(playingName)}"] .voice-track i`);
-  if (row) row.style.width = `${(player.currentTime / player.duration) * 100}%`;
-});
-player.addEventListener('ended', () => stopPlayback());
-player.addEventListener('error', () => { if (playingName) toast('File audio tidak bisa diputar di browser ini', 'error'); stopPlayback(); });
-
-function stopPlayback() {
-  playingName = null;
-  qsa('.play-btn.playing').forEach((b) => { b.classList.remove('playing'); b.innerHTML = icon('play'); b.setAttribute('aria-label', 'Putar'); });
-  qsa('.voice-track i').forEach((i) => { i.style.width = '0'; });
-}
-
-function togglePlay(name, btn) {
-  if (playingName === name) { player.pause(); stopPlayback(); return; }
-  player.pause();
-  stopPlayback();
-  playingName = name;
-  player.src = `/api/voice-files/${encodeURIComponent(name)}/audio`;
-  player.play().catch(() => { /* ditangani oleh event error */ });
-  btn.classList.add('playing');
-  btn.innerHTML = icon('pause');
-  btn.setAttribute('aria-label', 'Jeda');
-}
-
-async function loadVoiceFiles() {
-  try {
-    const d = await api('/voice-files');
-    state.voice = d.details || (d.files || []).map((name) => ({ name, size: 0, modified: 0 }));
-    renderVoiceList();
-  } catch {
-    $('voice-files').innerHTML = '<li class="empty"><strong>Gagal memuat voice note</strong>Coba segarkan halaman.</li>';
-  }
-}
-
-function renderVoiceList() {
-  const q = $('voice-search').value.trim().toLowerCase();
-  const list = state.voice.filter((f) => f.name.toLowerCase().includes(q));
-  $('voice-count').textContent = state.voice.length ? `(${state.voice.length})` : '';
-  const ul = $('voice-files');
-  if (!state.voice.length) {
-    ul.innerHTML = '<li class="empty"><strong>Pustaka masih kosong</strong>Unggah file audio di atas. Bot tidak akan mengirim voice note sebelum ada file.</li>';
-    return;
-  }
-  if (!list.length) { ul.innerHTML = '<li class="empty"><strong>Tidak ada hasil</strong>Coba kata kunci lain.</li>'; return; }
-  const was = playingName;
-  ul.innerHTML = list.map((f) => `
-    <li class="voice-row" data-name="${esc(f.name)}">
-      <button class="play-btn ${was === f.name ? 'playing' : ''}" type="button" aria-label="${was === f.name ? 'Jeda' : 'Putar'}">${icon(was === f.name ? 'pause' : 'play')}</button>
-      <div class="voice-info"><div class="voice-name" title="${esc(f.name)}">${esc(f.name)}</div><div class="voice-track"><i></i></div></div>
-      <div class="voice-meta"><b>${esc(fmtSize(f.size))}</b>${f.modified ? esc(new Date(f.modified).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })) : ''}</div>
-      <button class="icon-btn del-btn" type="button" aria-label="Hapus ${esc(f.name)}" title="Hapus">${icon('trash')}</button>
-    </li>`).join('');
-}
-
-async function uploadVoiceFiles(files) {
-  const zone = $('dropzone');
-  const list = [...files];
-  if (!list.length) return;
-  zone.classList.add('busy');
-  let ok = 0;
-  for (const f of list) {
-    if (f.size > 25 * 1024 * 1024) { toast(`${f.name}: lebih dari 25 MB`, 'error'); continue; }
-    try {
-      await api('/voice-files?name=' + encodeURIComponent(f.name), {
-        method: 'POST', headers: { 'Content-Type': f.type || 'application/octet-stream' }, body: f,
-      });
-      ok++;
-    } catch (err) { toast(`${f.name}: ${err.message}`, 'error'); }
-  }
-  zone.classList.remove('busy');
-  if (ok) toast(ok === 1 ? 'Voice note diunggah' : `${ok} voice note diunggah`);
-  loadVoiceFiles();
-}
-
-async function deleteVoice(name) {
-  if (!confirm(`Hapus "${name}" dari pustaka? File akan dihapus dari folder voice-notes.`)) return;
-  if (playingName === name) { player.pause(); stopPlayback(); }
-  try {
-    await api('/voice-files/' + encodeURIComponent(name), { method: 'DELETE' });
-    toast('Voice note dihapus');
-    loadVoiceFiles();
-  } catch (err) { toast('Gagal menghapus: ' + err.message, 'error'); }
-}
-
-function initVoice() {
-  const zone = $('dropzone'); const input = $('voice-input');
-  zone.addEventListener('click', () => input.click());
-  zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
-  input.addEventListener('change', () => { uploadVoiceFiles(input.files); input.value = ''; });
-  ['dragenter', 'dragover'].forEach((ev) => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add('drag'); }));
-  ['dragleave', 'drop'].forEach((ev) => zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.remove('drag'); }));
-  zone.addEventListener('drop', (e) => uploadVoiceFiles(e.dataTransfer.files));
-  $('voice-search').addEventListener('input', debounce(renderVoiceList, 100));
-  $('voice-files').addEventListener('click', (e) => {
-    const row = e.target.closest('.voice-row');
-    if (!row) return;
-    const name = row.dataset.name;
-    if (e.target.closest('.play-btn')) togglePlay(name, row.querySelector('.play-btn'));
-    else if (e.target.closest('.del-btn')) deleteVoice(name);
-    else if (e.target.closest('.voice-track') && playingName === name && player.duration) {
-      const r = row.querySelector('.voice-track').getBoundingClientRect();
-      player.currentTime = ((e.clientX - r.left) / r.width) * player.duration;
-    }
-  });
-}
-
 /* ---------------- Pengaturan ---------------- */
 async function loadSettings() {
   try {
@@ -1061,7 +946,7 @@ async function logout() {
 }
 
 function refreshAll() {
-  loadStats(); loadRecent(); loadCategories(); loadChats(); loadVoiceFiles(); loadAiStatus();
+  loadStats(); loadRecent(); loadCategories(); loadChats(); loadAiStatus();
   if (state.page === 'settings') loadLogs();
   if (state.activeJid) loadConversation();
   toast('Data diperbarui');
@@ -1097,7 +982,7 @@ function initSocket() {
 
 /* ---------------- Boot ---------------- */
 async function boot() {
-  initNavigation(); initChat(); initCategories(); initVoice(); initSettings();
+  initNavigation(); initChat(); initCategories(); initSettings();
   $('logout-btn').addEventListener('click', logout);
   showQR(null);
   initSocket();

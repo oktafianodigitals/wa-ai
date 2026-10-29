@@ -38,7 +38,6 @@ export function getSettings() {
     DEBOUNCE_MS: String(config.DEBOUNCE_MS),
     EXTRA_PROMPT: config.EXTRA_PROMPT,
     AI_SYSTEM_PROMPT: config.AI_SYSTEM_PROMPT,
-    AI_VOICE_SELECT_PROMPT: config.AI_VOICE_SELECT_PROMPT,
     AUTO_REPLY_ENABLED: !!config.AUTO_REPLY_ENABLED,
     MAX_FILE_MB: String(config.MAX_FILE_MB),
     AI_VISION_ENABLED: !!config.AI_VISION_ENABLED,

@@ -1,4 +1,4 @@
-# WA-AI Auto Reply Bot v2.8
+# WA-AI Auto Reply Bot v2.6.0
 
 WhatsApp Auto Reply AI — Sistem chat otomatis menggunakan Baileys + AI.
 
@@ -27,7 +27,6 @@ WhatsApp Auto Reply AI — Sistem chat otomatis menggunakan Baileys + AI.
 | `DEBOUNCE_MS` | `8000` | Delay debounce (ms) |
 | `EXTRA_PROMPT` | - | Prompt tambahan untuk AI |
 | `AI_SYSTEM_PROMPT` | - | System prompt utama |
-| `AI_VOICE_SELECT_PROMPT` | - | Prompt pemilih voice note |
 | `MAX_FILE_MB` | `50` | Lampiran lebih besar tidak diunduh (pelanggan tetap dibalas) |
 | `AI_VISION_ENABLED` | `false` | Kirim gambar ke AI (model harus mendukung gambar) |
 | `AUTO_CATEGORIZE_ENABLED` | `true` | AI memasukkan customer ke kategori otomatis |
@@ -50,7 +49,6 @@ WhatsApp Auto Reply AI — Sistem chat otomatis menggunakan Baileys + AI.
 | PUT | `/api/chats/:jid/category` | Tetapkan kategori manual (`category_id: null` = kembali ke otomatis) |
 | POST | `/api/chats/:jid/categorize` | Minta AI menentukan kategori chat sekarang |
 | PUT | `/api/chats/:jid/bot` | Aktif/matikan balas otomatis untuk satu chat |
-| GET | `/api/voice-files` | List file voice note |
 | GET | `/api/db/stats` | Statistik database |
 | GET | `/api/settings` | Ambil semua pengaturan (.env) |
 | POST | `/api/settings` | Ubah pengaturan (.env) langsung dari dashboard |
@@ -95,10 +93,6 @@ tanpa berpura-pura membaca isinya. File selain gambar/audio/video selalu diunduh
 AI hanya memindahkan kategori bila keyakinannya ≥ `CATEGORY_MIN_CONFIDENCE`, dan menolak nama kategori yang tidak ada di daftar (tidak pernah membuat label baru).
 Setiap pesan memakai satu panggilan AI tambahan; matikan lewat `AUTO_CATEGORIZE_ENABLED=false` bila tidak diperlukan.
 
-## Voice Notes
-
-Taruh file audio (.mp3/.ogg/.wav/.m4a/.opus) di folder `voice-notes/`. Bot akan memilih secara otomatis menggunakan AI.
-
 ## Arsitektur
 
 ```
@@ -116,7 +110,6 @@ src/
 ├── media.js          # Pengenalan jenis pesan, unduh & simpan lampiran
 ├── categories.js     # Klasifikasi customer ke kategori (label) oleh AI
 ├── labels.js         # Sinkron Label WhatsApp <-> kategori
-├── voice-select.js   # Pemilih file voice note
 ├── debounce.js       # Debounce handler
 ├── db.js             # SQLite database
 └── router.js         # HTTP API router
@@ -135,8 +128,11 @@ Sekarang kode error asli ditampilkan, mis. `Koneksi ditolak (ECONNREFUSED) ke 12
 
 ## 📈 Riwayat Update
 
+### v2.8.3
+- Dihapus: fitur pengiriman voice note (pemilih AI, pustaka file, halaman dashboard, endpoint `/api/voice-files*`, setting `AI_VOICE_SELECT_PROMPT`). Transkripsi (STT) voice note masuk tetap ada.
+
 ### v2.8.1
-- **Prompt disimpan di database** (tabel `app_settings`): `AI_SYSTEM_PROMPT`, `EXTRA_PROMPT`, `AI_VOICE_SELECT_PROMPT`, `CATEGORY_PROMPT`
+- **Prompt disimpan di database** (tabel `app_settings`): `AI_SYSTEM_PROMPT`, `EXTRA_PROMPT`, `CATEGORY_PROMPT`
   - Dashboard menyimpan dan memuat prompt dari SQLite, sehingga teks multi-baris (pemisah `\n\n`) utuh dan tidak lagi terpotong di baris pertama seperti di `.env`
   - Database menang atas `.env`. Nilai prompt di `.env` hanya data awal: disalin sekali ke database saat pertama jalan (literal `\n` diubah jadi baris baru), setelah itu diabaikan
   - Pengaturan non-prompt tetap di `.env`

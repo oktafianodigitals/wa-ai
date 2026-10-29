@@ -13,7 +13,6 @@ import { config } from './config.js';
 import { saveMessage, clearMessages, clearWaLabels, getHistory, formatHistoryForAI, isBotEnabledForChat } from './db.js';
 import { chatWithAI } from './ai.js';
 import { transcribeAudio } from './stt.js';
-import { selectVoiceFile, getVoicePath, getVoiceFiles, getVoiceMime } from './voice-select.js';
 import { formatAIError } from './ai.js';
 import { debounce } from './debounce.js';
 import { rememberFromMessage, rememberContacts, queueAvatar, queueAllAvatars, clearAvatars } from './contacts.js';
@@ -214,23 +213,6 @@ export async function handleMessage(msg, ctx = {}) {
       emit('chat-updated', { jid: chatJid });
       console.log(`[REPLY] ${chatJid}: ${reply}`);
       await s.sendMessage(chatJid, { text: reply });
-
-      const voiceFiles = getVoiceFiles();
-      if (voiceFiles.length > 0) {
-        const history = getHistory(chatJid, 20);
-        const aiHistory = formatHistoryForAI(history);
-        const voiceFile = await selectVoiceFile(aiHistory);
-        if (voiceFile) {
-          const voicePath = getVoicePath(voiceFile);
-          const audioBuffer = fs.readFileSync(voicePath);
-          await s.sendMessage(chatJid, {
-            audio: audioBuffer,
-            mimetype: getVoiceMime(voiceFile),
-            ptt: true,
-          });
-          console.log(`[VOICE] Sent: ${voiceFile}`);
-        }
-      }
     } catch (err) {
       console.error('[AI] Error:', formatAIError(err));
       if (s) {

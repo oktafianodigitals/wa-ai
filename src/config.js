@@ -17,7 +17,6 @@ export const SETTING_KEYS = [
   'DEBOUNCE_MS',
   'EXTRA_PROMPT',
   'AI_SYSTEM_PROMPT',
-  'AI_VOICE_SELECT_PROMPT',
   'PORT',
   'AUTO_REPLY_ENABLED',
   'MAX_FILE_MB',
@@ -29,7 +28,7 @@ export const SETTING_KEYS = [
 ];
 
 // Semua pengaturan yang berkaitan dengan prompt disimpan di SQLite (bukan .env) agar teks multi-baris utuh.
-export const PROMPT_KEYS = ['EXTRA_PROMPT', 'AI_SYSTEM_PROMPT', 'AI_VOICE_SELECT_PROMPT', 'CATEGORY_PROMPT'];
+export const PROMPT_KEYS = ['EXTRA_PROMPT', 'AI_SYSTEM_PROMPT', 'CATEGORY_PROMPT'];
 
 const NUMERIC_KEYS = ['MAX_HISTORY', 'DEBOUNCE_MS', 'PORT', 'MAX_FILE_MB', 'CATEGORY_MIN_CONFIDENCE'];
 const BOOLEAN_KEYS = ['AUTO_REPLY_ENABLED', 'AI_VISION_ENABLED', 'AUTO_CATEGORIZE_ENABLED', 'WA_LABEL_SYNC_ENABLED'];
@@ -46,7 +45,6 @@ const DEFAULTS = {
   DEBOUNCE_MS: '8000',
   EXTRA_PROMPT: '',
   AI_SYSTEM_PROMPT: 'Kamu adalah asisten WhatsApp yang ramah dan helpful. Jawab dalam bahasa Indonesia dengan singkat dan jelas.',
-  AI_VOICE_SELECT_PROMPT: '',
   PORT: '3000',
   AUTO_REPLY_ENABLED: 'true',
   MAX_FILE_MB: '50',               // lampiran lebih besar tidak diunduh (tetap dibalas)

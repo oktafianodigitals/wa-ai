@@ -8,9 +8,6 @@ import {
 import { mediaFilePath, isInlineSafe, deleteMediaFiles } from './media.js';
 import { classifyChat, classifyAll } from './categories.js';
 import { getLabelSyncStatus, resyncLabels, pushChatLabel } from './labels.js';
-import {
-  getVoiceDetails, getVoicePath, saveVoiceFile, deleteVoiceFile, sanitizeVoiceName, getVoiceMime,
-} from './voice-select.js';
 import { pingAI, diagnoseAI } from './ai-client.js';
 import { emit } from './socket.js';
 import fs from 'fs';
@@ -333,43 +330,6 @@ router.post('/chats/:jid/categorize', async (req, res) => {
     const r = await classifyChat(jid, { force: true });
     res.status(r.ok ? 200 : 502).json({ ...r, current: getChatCategory(jid) });
   } catch (err) { categoryError(res, err); }
-});
-
-router.get('/voice-files', (req, res) => {
-  try {
-    const details = getVoiceDetails();
-    res.json({ files: details.map(d => d.name), details });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get('/voice-files/:name/audio', (req, res) => {
-  const safe = sanitizeVoiceName(req.params.name);
-  if (!safe) return res.status(400).json({ error: 'Nama file tidak valid' });
-  const p = getVoicePath(safe);
-  if (!fs.existsSync(p)) return res.status(404).json({ error: 'File tidak ditemukan' });
-  res.type(getVoiceMime(safe).split(';')[0]);
-  res.sendFile(p);
-});
-
-// Upload: body mentah (audio), nama file di query ?name=
-router.post('/voice-files', express.raw({ type: () => true, limit: '25mb' }), (req, res) => {
-  try {
-    const name = String(req.query.name || '');
-    const saved = saveVoiceFile(name, req.body);
-    res.json({ ok: true, name: saved });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-router.delete('/voice-files/:name', (req, res) => {
-  try {
-    res.json({ ok: true, name: deleteVoiceFile(req.params.name) });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
 });
 
 router.get('/db/stats', (req, res) => {

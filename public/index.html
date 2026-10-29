@@ -48,7 +48,7 @@
       <div class="login-intro">
         <div class="brand-mark"><svg class="ic"><use href="#i-logo" /></svg></div>
         <h1>Hubungkan WhatsApp</h1>
-        <p class="login-lead">Setelah tertaut, bot membalas chat pribadi memakai AI dan bisa mengirim voice note yang cocok dengan percakapan.</p>
+        <p class="login-lead">Setelah tertaut, bot membalas chat pribadi memakai AI.</p>
         <ol class="login-steps">
           <li>Buka WhatsApp di ponsel</li>
           <li>Pilih <b>Pengaturan</b> → <b>Perangkat tertaut</b></li>
@@ -80,7 +80,6 @@
         <button class="nav-item active" data-page="dashboard"><svg class="ic"><use href="#i-dash" /></svg><span>Dashboard</span></button>
         <button class="nav-item" data-page="chats"><svg class="ic"><use href="#i-chat" /></svg><span>Chat</span><i class="nav-badge" id="nav-chat-badge" hidden></i></button>
         <button class="nav-item" data-page="categories"><svg class="ic"><use href="#i-tag" /></svg><span>Kategori</span></button>
-        <button class="nav-item" data-page="voice"><svg class="ic"><use href="#i-mic" /></svg><span>Voice note</span></button>
         <button class="nav-item" data-page="settings"><svg class="ic"><use href="#i-gear" /></svg><span>Pengaturan</span></button>
       </nav>
 
@@ -266,32 +265,6 @@
           </section>
         </section>
 
-        <!-- ===== VOICE ===== -->
-        <section class="page" id="page-voice">
-          <div class="voice-top">
-            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Unggah voice note">
-              <svg class="ic"><use href="#i-upload" /></svg>
-              <div>
-                <strong>Tarik file audio ke sini atau klik untuk memilih</strong>
-                <span>mp3, ogg, opus, wav, m4a — maksimal 25 MB per file</span>
-              </div>
-              <input type="file" id="voice-input" accept=".mp3,.ogg,.opus,.wav,.m4a,audio/*" multiple hidden>
-            </div>
-            <p class="voice-explain">Setelah membalas dengan teks, bot meminta AI memilih <em>satu</em> file dari daftar ini berdasarkan isi percakapan, lalu mengirimnya sebagai voice note. Beri nama file yang menjelaskan isinya, misalnya <code>selamat-pagi.mp3</code>, supaya pilihan AI tepat.</p>
-          </div>
-
-          <section class="panel">
-            <div class="panel-head">
-              <h2>Pustaka <span class="count" id="voice-count"></span></h2>
-              <div class="search sm">
-                <svg class="ic"><use href="#i-search" /></svg>
-                <input type="search" id="voice-search" placeholder="Cari nama file" autocomplete="off">
-              </div>
-            </div>
-            <ul id="voice-files" class="voice-list"></ul>
-          </section>
-        </section>
-
         <!-- ===== SETTINGS ===== -->
         <section class="page" id="page-settings">
           <form id="settings-form" class="settings" autocomplete="off">
@@ -359,8 +332,8 @@
 
             <section class="panel sgroup">
               <div class="sgroup-head">
-                <h2>Voice note</h2>
-                <p>Transkripsi suara masuk dan pemilihan voice note balasan.</p>
+                <h2>Suara masuk (STT)</h2>
+                <p>Transkripsi voice note yang dikirim pelanggan.</p>
               </div>
               <div class="fields">
                 <label class="field wide">
@@ -370,10 +343,6 @@
                 <label class="field">
                   <span>STT model</span>
                   <input type="text" id="set-AI_MODEL_STT" class="set-input" placeholder="whisper-1">
-                </label>
-                <label class="field wide">
-                  <span>Prompt pemilih voice note</span>
-                  <textarea id="set-AI_VOICE_SELECT_PROMPT" class="set-input" rows="4" placeholder="Kosongkan untuk memakai prompt bawaan. Gunakan {FILE_LIST} sebagai tempat daftar file."></textarea>
                 </label>
               </div>
             </section>
@@ -456,7 +425,6 @@
       <button class="tab active" data-page="dashboard"><svg class="ic"><use href="#i-dash" /></svg><span>Dashboard</span></button>
       <button class="tab" data-page="chats"><svg class="ic"><use href="#i-chat" /></svg><span>Chat</span></button>
       <button class="tab" data-page="categories"><svg class="ic"><use href="#i-tag" /></svg><span>Kategori</span></button>
-      <button class="tab" data-page="voice"><svg class="ic"><use href="#i-mic" /></svg><span>Voice</span></button>
       <button class="tab" data-page="settings"><svg class="ic"><use href="#i-gear" /></svg><span>Atur</span></button>
     </nav>
   </div>

@@ -1,5 +1,5 @@
-const APP_VERSION = '2.8.1';
 import './logger.js';
+import { APP_VERSION } from './version.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';

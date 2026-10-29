@@ -916,7 +916,31 @@ async function loadLogs() {
   } catch (err) { el.textContent = 'Gagal memuat log: ' + err.message; }
 }
 
+/* ---------------- Tema tampilan ---------------- */
+const THEMES = { light: '#0F2E2B', dark: '#0A1513', 'dark-cyber': '#050912', 'light-cyber': '#0A2540', cyberpunk: '#0A0316' };
+
+function applyTheme(name, persist) {
+  if (!THEMES[name]) name = 'light';
+  const root = document.documentElement;
+  if (name === 'light') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', name);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEMES[name]);
+  document.querySelectorAll('[data-theme-opt]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.themeOpt === name)));
+  if (persist) { try { localStorage.setItem('wa-ai-theme', name); } catch { /* storage diblokir */ } }
+}
+
+function initTheme() {
+  let saved = 'light';
+  try { saved = localStorage.getItem('wa-ai-theme') || 'light'; } catch { /* abaikan */ }
+  applyTheme(saved, false);
+  $('theme-grid').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme-opt]');
+    if (b) applyTheme(b.dataset.themeOpt, true);
+  });
+}
+
 function initSettings() {
+  initTheme();
   $('settings-form').addEventListener('submit', saveSettings);
   $('settings-form').addEventListener('input', () => { state.settingsDirty = true; setSaveMsg('Ada perubahan yang belum disimpan'); });
   $('settings-reload').addEventListener('click', () => { loadSettings(); $('diag').hidden = true; });

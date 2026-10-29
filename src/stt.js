@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import FormData from 'form-data';
 import { config } from './config.js';
 import { describeNetworkError } from './ai-client.js';
+import { APP_VERSION } from './version.js';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -40,7 +41,7 @@ export async function transcribeAudio(audioBuffer, filename = 'audio.ogg', opts 
         headers: {
           ...(config.AI_API_KEY ? { Authorization: `Bearer ${config.AI_API_KEY}` } : {}),
           ...form.getHeaders(),
-          'User-Agent': 'WA-AI-Bot/2.5.0',
+          'User-Agent': `WA-AI-Bot/${APP_VERSION}`,
         },
         body: form,
       }, 120000);

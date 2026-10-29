@@ -6,6 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0F2E2B">
   <title>WA-AI Auto Reply</title>
+  <script>
+    /* terapkan tema tersimpan sebelum render agar tidak berkedip */
+    (function () {
+      try {
+        var t = localStorage.getItem('wa-ai-theme');
+        if (t && /^(dark|dark-cyber|light-cyber|cyberpunk)$/.test(t)) document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="css/style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230F2E2B'/><path d='M8 22l1.4-4.2A8 8 0 1 1 13 21z' fill='none' stroke='%2345D483' stroke-width='2.2' stroke-linejoin='round'/></svg>">
   <script src="/socket.io/socket.io.js"></script>
@@ -268,6 +277,35 @@
         <!-- ===== SETTINGS ===== -->
         <section class="page" id="page-settings">
           <form id="settings-form" class="settings" autocomplete="off">
+
+            <section class="panel sgroup">
+              <div class="sgroup-head">
+                <h2>Tampilan</h2>
+                <p>Pilih tema dashboard. Langsung berlaku dan disimpan di browser ini.</p>
+              </div>
+              <div class="theme-grid" id="theme-grid" role="radiogroup" aria-label="Tema tampilan">
+                <button type="button" class="theme-card" role="radio" aria-checked="false" data-theme-opt="light">
+                  <span class="theme-prev" style="--pv-bg:#eef1ee;--pv-side:#0f2e2b;--pv-card:#ffffff;--pv-line:#dde3df;--pv-acc:#1f9d55"><i></i><span></span></span>
+                  <b>Terang</b><small>Tampilan standar</small>
+                </button>
+                <button type="button" class="theme-card" role="radio" aria-checked="false" data-theme-opt="dark">
+                  <span class="theme-prev" style="--pv-bg:#0e1614;--pv-side:#0a1513;--pv-card:#162220;--pv-line:#243532;--pv-acc:#2fbf6c"><i></i><span></span></span>
+                  <b>Gelap</b><small>Nyaman di malam hari</small>
+                </button>
+                <button type="button" class="theme-card" role="radio" aria-checked="false" data-theme-opt="dark-cyber">
+                  <span class="theme-prev" style="--pv-bg:#070c16;--pv-side:#050912;--pv-card:#0d1524;--pv-line:#1f4263;--pv-acc:#00e5ff;--pv-glow:0 0 8px #00e5ff"><i></i><span></span></span>
+                  <b>Dark Cyber</b><small>Biru malam, aksen cyan</small>
+                </button>
+                <button type="button" class="theme-card" role="radio" aria-checked="false" data-theme-opt="light-cyber">
+                  <span class="theme-prev" style="--pv-bg:#e9f3fa;--pv-side:#0a2540;--pv-card:#ffffff;--pv-line:#bcd3e4;--pv-acc:#19d3f0;--pv-glow:0 0 8px #19d3f0"><i></i><span></span></span>
+                  <b>Light Cyber</b><small>Terang, aksen cyan</small>
+                </button>
+                <button type="button" class="theme-card" role="radio" aria-checked="false" data-theme-opt="cyberpunk">
+                  <span class="theme-prev" style="--pv-bg:#0d0221;--pv-side:#0a0316;--pv-card:#150833;--pv-line:#4d1a82;--pv-acc:#ff2a6d;--pv-glow:0 0 8px #ff2a6d"><i></i><span></span></span>
+                  <b>Cyberpunk</b><small>Ungu neon, pink & kuning</small>
+                </button>
+              </div>
+            </section>
 
             <section class="panel sgroup">
               <div class="sgroup-head">

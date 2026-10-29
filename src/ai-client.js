@@ -1,3 +1,4 @@
+import { APP_VERSION } from './version.js';
 import fetch from 'node-fetch';
 import { config } from './config.js';
 
@@ -202,7 +203,7 @@ function buildHeaders(apiKey, extra = {}) {
   return {
     'Content-Type': 'application/json',
     Accept: 'application/json, text/event-stream',
-    'User-Agent': 'WA-AI-Bot/2.6.0',
+    'User-Agent': `WA-AI-Bot/${APP_VERSION}`,
     ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
     ...extra,
   };

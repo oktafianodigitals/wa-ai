@@ -1,4 +1,4 @@
-# WA-AI Auto Reply Bot v2.8
+# WA-AI Auto Reply Bot v2.9.0
 
 WhatsApp Auto Reply AI — Sistem chat otomatis menggunakan Baileys + AI.
 
@@ -127,6 +127,11 @@ Sekarang kode error asli ditampilkan, mis. `Koneksi ditolak (ECONNREFUSED) ke 12
 5. AI Base URL boleh `http://localhost:20128`, `.../v1`, atau `.../v1/chat/completions`.
 
 ## 📈 Riwayat Update
+
+### v2.9.0
+- **Pilihan tema tampilan** di Pengaturan › Tampilan: Terang (standar), Gelap, Dark Cyber, Light Cyber, dan Cyberpunk
+  - Berlaku langsung dan disimpan di browser (localStorage), tanpa kedip saat halaman dimuat
+  - Warna antarmuka dipusatkan ke variabel CSS sehingga semua halaman ikut berganti tema
 
 ### v2.8.3
 - Dihapus: fitur pengiriman voice note (pemilih AI, pustaka file, halaman dashboard, endpoint `/api/voice-files*`, setting `AI_VOICE_SELECT_PROMPT`). Transkripsi (STT) voice note masuk tetap ada.

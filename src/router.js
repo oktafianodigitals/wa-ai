@@ -1,4 +1,5 @@
 import express from 'express';
+import { APP_VERSION } from './version.js';
 import { getSock, logout } from './baileys.js';
 import {
   clearChat, getContact, getHistory, listChats, getStats, getRecentMessages, saveMessage,
@@ -43,16 +44,17 @@ router.post('/settings', (req, res) => {
 });
 
 router.get('/health', (req, res) => {
+  res.set('Cache-Control', 'no-store');
   try {
     const sock = getSock();
     res.json({
       status: 'ok',
       connected: !!sock?.user,
       timestamp: Date.now(),
-      version: '2.8.1',
+      version: APP_VERSION,
     });
   } catch (err) {
-    res.json({ status: 'ok', timestamp: Date.now(), version: '2.8.1' });
+    res.json({ status: 'ok', timestamp: Date.now(), version: APP_VERSION });
   }
 });
 
